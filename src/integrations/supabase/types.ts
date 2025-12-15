@@ -164,6 +164,7 @@ export type Database = {
           contribution_split_cash_percent: number
           contribution_split_stocks_percent: number
           created_at: string
+          currency: string
           id: string
           monthly_contribution_total: number
           rebuild_threshold: number
@@ -181,6 +182,7 @@ export type Database = {
           contribution_split_cash_percent?: number
           contribution_split_stocks_percent?: number
           created_at?: string
+          currency?: string
           id?: string
           monthly_contribution_total?: number
           rebuild_threshold?: number
@@ -198,6 +200,7 @@ export type Database = {
           contribution_split_cash_percent?: number
           contribution_split_stocks_percent?: number
           created_at?: string
+          currency?: string
           id?: string
           monthly_contribution_total?: number
           rebuild_threshold?: number
