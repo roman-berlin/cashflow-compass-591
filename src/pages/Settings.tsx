@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, RotateCcw } from 'lucide-react';
+import { getCurrencySymbol } from '@/lib/currency';
 import type { Tables } from '@/integrations/supabase/types';
 
 export default function Settings() {
@@ -16,7 +17,7 @@ export default function Settings() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState<Partial<Tables<'settings'>> & { currency?: string }>({
+  const [settings, setSettings] = useState<Partial<Tables<'settings'>>>({
     monthly_contribution_total: 0,
     stocks_target_percent: 70,
     cash_target_percent: 30,
@@ -26,7 +27,8 @@ export default function Settings() {
     tranche_2_trigger: 20,
     tranche_3_trigger: 30,
     rebuild_threshold: 10,
-    stop_cash_threshold: 50,
+    cash_min_pct: 20,
+    cash_max_pct: 35,
     currency: 'USD',
   });
 
@@ -87,7 +89,7 @@ export default function Settings() {
     setSettings((prev) => ({ ...prev, [field]: value }));
   };
 
-  const currencySymbol = settings.currency === 'NIS' ? '₪' : '$';
+  const currencySymbol = getCurrencySymbol(settings.currency || 'USD');
 
   if (loading) {
     return (
@@ -124,7 +126,7 @@ export default function Settings() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="USD">USD ($)</SelectItem>
-                  <SelectItem value="NIS">NIS (₪)</SelectItem>
+                  <SelectItem value="ILS">ILS (₪)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -191,10 +193,46 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        {/* Cash Thresholds - Min / Target / Max */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Cash Thresholds</CardTitle>
+            <CardDescription>Define cash allocation boundaries</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Cash Min (%)</Label>
+              <Input
+                type="number"
+                value={settings.cash_min_pct}
+                onChange={(e) => updateField('cash_min_pct', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Cash Target (%)</Label>
+              <Input
+                type="number"
+                value={settings.cash_target_percent}
+                onChange={(e) => updateField('cash_target_percent', parseFloat(e.target.value) || 0)}
+                disabled
+              />
+              <p className="text-xs text-muted-foreground">Set in Target Allocation</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Cash Max (%)</Label>
+              <Input
+                type="number"
+                value={settings.cash_max_pct}
+                onChange={(e) => updateField('cash_max_pct', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Ammo Triggers</CardTitle>
-            <CardDescription>Market drawdown thresholds to deploy cash</CardDescription>
+            <CardDescription>Market drawdown thresholds to deploy cash (each tranche = 1/3 of current cash)</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
@@ -223,23 +261,14 @@ export default function Settings() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Rebuild Threshold (%)</Label>
-                <Input
-                  type="number"
-                  value={settings.rebuild_threshold}
-                  onChange={(e) => updateField('rebuild_threshold', parseFloat(e.target.value) || 0)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Stop Cash Threshold (%)</Label>
-                <Input
-                  type="number"
-                  value={settings.stop_cash_threshold}
-                  onChange={(e) => updateField('stop_cash_threshold', parseFloat(e.target.value) || 0)}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Rebuild Threshold (%)</Label>
+              <Input
+                type="number"
+                value={settings.rebuild_threshold}
+                onChange={(e) => updateField('rebuild_threshold', parseFloat(e.target.value) || 0)}
+              />
+              <p className="text-xs text-muted-foreground">When drawdown falls below this, start rebuilding ammo</p>
             </div>
           </CardContent>
         </Card>

@@ -11,11 +11,13 @@ export interface StrategyResult {
 }
 
 export interface PortfolioState {
-  cashValue: number;
-  stocksValue: number;
+  valueCash: number;
+  valueSp: number;
+  valueTa: number;
   totalValue: number;
-  cashPercent: number;
-  stocksPercent: number;
+  percentCash: number;
+  percentSp: number;
+  percentTa: number;
 }
 
 export interface MarketState {
@@ -47,65 +49,65 @@ export function runStrategy(
   ammo: AmmoState,
   settings: Tables<'settings'>
 ): StrategyResult {
-  const { cashPercent, stocksPercent, cashValue, totalValue } = portfolio;
+  const { percentCash, valueCash, totalValue } = portfolio;
   const { drawdownPercent } = market;
   const marketStatus = getMarketStatus(drawdownPercent, settings);
 
-  // Priority 1: Fire Ammo Tranche 3 (30%+ drawdown)
-  if (drawdownPercent >= settings.tranche_3_trigger && !ammo.tranche3Used && cashValue > 0) {
-    const ammoAmount = cashValue; // Deploy all remaining cash
+  // Priority 1: STOP_CASH_OVER_MAX - highest priority, even during drawdown
+  if (percentCash > settings.cash_max_pct) {
     return {
-      recommendation_type: 'FIRE_AMMO_3',
-      recommendation_text: `CRASH ALERT! Market down ${drawdownPercent.toFixed(1)}%. Deploy ALL remaining cash ($${ammoAmount.toLocaleString()}) to stocks immediately.`,
-      transfer_amount: ammoAmount,
+      recommendation_type: 'STOP_CASH_OVER_MAX',
+      recommendation_text: `Cash allocation (${percentCash.toFixed(1)}%) exceeds maximum (${settings.cash_max_pct}%). Stop contributing to cash - direct all contributions to equities.`,
+      transfer_amount: null,
       market_status: marketStatus,
       priority: 1,
     };
   }
 
-  // Priority 2: Fire Ammo Tranche 2 (20%+ drawdown)
-  if (drawdownPercent >= settings.tranche_2_trigger && !ammo.tranche2Used && cashValue > 0) {
-    const ammoAmount = Math.min(cashValue * 0.5, cashValue); // Deploy 50% of cash
+  // Priority 2: Deploy Tranche 3 (30%+ drawdown)
+  // Each tranche = exactly 1/3 of current cash
+  const trancheAmount = valueCash / 3;
+
+  if (drawdownPercent >= settings.tranche_3_trigger && !ammo.tranche3Used && valueCash > 0) {
     return {
-      recommendation_type: 'FIRE_AMMO_2',
-      recommendation_text: `BEAR MARKET! Market down ${drawdownPercent.toFixed(1)}%. Deploy 50% of cash ($${ammoAmount.toLocaleString()}) to stocks.`,
-      transfer_amount: ammoAmount,
+      recommendation_type: 'FIRE_AMMO_3',
+      recommendation_text: `Significant downturn detected (${drawdownPercent.toFixed(1)}% drawdown). Deploy Tranche 3: 1/3 of current cash (${trancheAmount.toLocaleString()}) to equities.`,
+      transfer_amount: trancheAmount,
       market_status: marketStatus,
       priority: 2,
     };
   }
 
-  // Priority 3: Fire Ammo Tranche 1 (10%+ drawdown)
-  if (drawdownPercent >= settings.tranche_1_trigger && !ammo.tranche1Used && cashValue > 0) {
-    const ammoAmount = Math.min(cashValue * 0.33, cashValue); // Deploy 33% of cash
+  // Priority 3: Deploy Tranche 2 (20%+ drawdown)
+  if (drawdownPercent >= settings.tranche_2_trigger && !ammo.tranche2Used && valueCash > 0) {
     return {
-      recommendation_type: 'FIRE_AMMO_1',
-      recommendation_text: `CORRECTION! Market down ${drawdownPercent.toFixed(1)}%. Deploy 33% of cash ($${ammoAmount.toLocaleString()}) to stocks.`,
-      transfer_amount: ammoAmount,
+      recommendation_type: 'FIRE_AMMO_2',
+      recommendation_text: `Bear market conditions (${drawdownPercent.toFixed(1)}% drawdown). Deploy Tranche 2: 1/3 of current cash (${trancheAmount.toLocaleString()}) to equities.`,
+      transfer_amount: trancheAmount,
       market_status: marketStatus,
       priority: 3,
     };
   }
 
-  // Priority 4: Stop contributing to cash if cash > 50%
-  if (cashPercent > settings.stop_cash_threshold) {
+  // Priority 4: Deploy Tranche 1 (10%+ drawdown)
+  if (drawdownPercent >= settings.tranche_1_trigger && !ammo.tranche1Used && valueCash > 0) {
     return {
-      recommendation_type: 'STOP_CASH',
-      recommendation_text: `Cash allocation (${cashPercent.toFixed(1)}%) exceeds ${settings.stop_cash_threshold}%. Stop contributing to cash - direct all contributions to stocks.`,
-      transfer_amount: null,
+      recommendation_type: 'FIRE_AMMO_1',
+      recommendation_text: `Market correction detected (${drawdownPercent.toFixed(1)}% drawdown). Deploy Tranche 1: 1/3 of current cash (${trancheAmount.toLocaleString()}) to equities.`,
+      transfer_amount: trancheAmount,
       market_status: marketStatus,
       priority: 4,
     };
   }
 
-  // Priority 5: Rebuild Ammo if drawdown < 10% and ammo was used
+  // Priority 5: Rebuild Ammo if drawdown < threshold and ammo was used
   const ammoWasUsed = ammo.tranche1Used || ammo.tranche2Used || ammo.tranche3Used;
-  if (drawdownPercent < settings.rebuild_threshold && ammoWasUsed && cashPercent < settings.cash_target_percent) {
+  if (drawdownPercent < settings.rebuild_threshold && ammoWasUsed && percentCash < settings.cash_target_percent) {
     const targetCash = (settings.cash_target_percent / 100) * totalValue;
-    const rebuildAmount = targetCash - cashValue;
+    const rebuildAmount = targetCash - valueCash;
     return {
       recommendation_type: 'REBUILD_AMMO',
-      recommendation_text: `Market recovered (drawdown ${drawdownPercent.toFixed(1)}%). Rebuild cash reserves to ${settings.cash_target_percent}%. Transfer $${rebuildAmount.toLocaleString()} from stocks to cash.`,
+      recommendation_text: `Market recovered (${drawdownPercent.toFixed(1)}% drawdown). Rebuild cash reserves to ${settings.cash_target_percent}%. Transfer ${rebuildAmount.toLocaleString()} from equities to cash.`,
       transfer_amount: rebuildAmount,
       market_status: marketStatus,
       priority: 5,
@@ -118,7 +120,7 @@ export function runStrategy(
   
   return {
     recommendation_type: 'NORMAL',
-    recommendation_text: `Market normal (drawdown ${drawdownPercent.toFixed(1)}%). Split contribution: $${cashContribution.toLocaleString()} to cash, $${stocksContribution.toLocaleString()} to stocks.`,
+    recommendation_text: `Market normal (${drawdownPercent.toFixed(1)}% drawdown). Split contribution: ${cashContribution.toLocaleString()} to cash, ${stocksContribution.toLocaleString()} to equities.`,
     transfer_amount: null,
     market_status: marketStatus,
     priority: 6,
