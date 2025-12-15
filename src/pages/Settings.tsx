@@ -6,10 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, RotateCcw } from 'lucide-react';
-import { getCurrencySymbol } from '@/lib/currency';
 import type { Tables } from '@/integrations/supabase/types';
 
 export default function Settings() {
@@ -17,19 +27,16 @@ export default function Settings() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [settings, setSettings] = useState<Partial<Tables<'settings'>>>({
-    monthly_contribution_total: 0,
     stocks_target_percent: 70,
     cash_target_percent: 30,
-    contribution_split_stocks_percent: 70,
-    contribution_split_cash_percent: 30,
     tranche_1_trigger: 10,
     tranche_2_trigger: 20,
     tranche_3_trigger: 30,
     rebuild_threshold: 10,
     cash_min_pct: 20,
     cash_max_pct: 35,
-    currency: 'NIS',
   });
 
   useEffect(() => {
@@ -81,15 +88,14 @@ export default function Settings() {
     if (error) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
     } else {
-      toast({ title: 'Ammo state reset!' });
+      toast({ title: 'Ammo state reset to Ready!' });
     }
+    setConfirmReset(false);
   };
 
   const updateField = (field: string, value: number | string) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
   };
-
-  const currencySymbol = getCurrencySymbol(settings.currency || 'USD');
 
   if (loading) {
     return (
@@ -106,67 +112,8 @@ export default function Settings() {
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">Configure your portfolio strategy parameters</p>
+          <p className="text-muted-foreground">Configure your long-term strategy parameters</p>
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>General Settings</CardTitle>
-            <CardDescription>Basic preferences for your account</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label>Currency</Label>
-              <Select
-                value={settings.currency === 'ILS' ? 'NIS' : (settings.currency || 'NIS')}
-                onValueChange={(value) => updateField('currency', value)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USD">USD ($)</SelectItem>
-                  <SelectItem value="NIS">NIS (₪)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Contribution Settings</CardTitle>
-            <CardDescription>How much you contribute each month</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Monthly Contribution Total ({currencySymbol})</Label>
-              <Input
-                type="number"
-                value={settings.monthly_contribution_total}
-                onChange={(e) => updateField('monthly_contribution_total', parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Stocks Split (%)</Label>
-                <Input
-                  type="number"
-                  value={settings.contribution_split_stocks_percent}
-                  onChange={(e) => updateField('contribution_split_stocks_percent', parseFloat(e.target.value) || 0)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Cash Split (%)</Label>
-                <Input
-                  type="number"
-                  value={settings.contribution_split_cash_percent}
-                  onChange={(e) => updateField('contribution_split_cash_percent', parseFloat(e.target.value) || 0)}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader>
@@ -193,7 +140,6 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Cash Thresholds - Min / Target / Max */}
         <Card>
           <CardHeader>
             <CardTitle>Cash Thresholds</CardTitle>
@@ -213,7 +159,6 @@ export default function Settings() {
               <Input
                 type="number"
                 value={settings.cash_target_percent}
-                onChange={(e) => updateField('cash_target_percent', parseFloat(e.target.value) || 0)}
                 disabled
               />
               <p className="text-xs text-muted-foreground">Set in Target Allocation</p>
@@ -278,10 +223,51 @@ export default function Settings() {
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Save Settings
           </Button>
-          <Button variant="outline" onClick={handleResetAmmo}>
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Reset Ammo
-          </Button>
+          
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Reset Ammo
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset Ammo Status</AlertDialogTitle>
+                <AlertDialogDescription asChild>
+                  <div className="space-y-3">
+                    <p>This will reset all ammo tranches to "Ready" status.</p>
+                    <div className="bg-muted p-3 rounded-md space-y-2 text-sm">
+                      <p className="font-medium">This does NOT move any money.</p>
+                      <p>This only resets tranche status to Ready.</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Use this when the previous market cycle is complete and cash has rebuilt to target.
+                    </p>
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Checkbox 
+                        id="confirm" 
+                        checked={confirmReset}
+                        onCheckedChange={(checked) => setConfirmReset(checked === true)}
+                      />
+                      <label
+                        htmlFor="confirm"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        I understand this is a logical reset only
+                      </label>
+                    </div>
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setConfirmReset(false)}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleResetAmmo} disabled={!confirmReset}>
+                  Reset Ammo
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </Layout>
