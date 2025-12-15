@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, RefreshCw, TrendingDown, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { runStrategy, calculateDrawdown, type StrategyResult, type MarketStatus } from '@/lib/strategy';
+import { getCurrencySymbol, formatCurrency } from '@/lib/currency';
 import type { Tables } from '@/integrations/supabase/types';
 
 const marketStatusConfig: Record<MarketStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof TrendingUp }> = {
@@ -27,8 +29,16 @@ export default function Update() {
   const [fetchingMarket, setFetchingMarket] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [cashValue, setCashValue] = useState(0);
-  const [stocksValue, setStocksValue] = useState(0);
+  // 3-bucket portfolio values
+  const [valueSp, setValueSp] = useState(0);
+  const [valueTa, setValueTa] = useState(0);
+  const [valueCash, setValueCash] = useState(0);
+
+  // Contribution tracking
+  const [contributionAmount, setContributionAmount] = useState(0);
+  const [contributionCurrency, setContributionCurrency] = useState<'USD' | 'ILS'>('USD');
+  const [contributionType, setContributionType] = useState<'monthly' | 'bonus' | 'adjustment'>('monthly');
+
   const [marketData, setMarketData] = useState<{ last_price: number; high_52w: number; as_of_date: string } | null>(null);
   const [settings, setSettings] = useState<Tables<'settings'> | null>(null);
   const [ammoState, setAmmoState] = useState<Tables<'ammo_state'> | null>(null);
@@ -45,11 +55,15 @@ export default function Update() {
       supabase.from('portfolio_snapshots').select('*').eq('user_id', user!.id).order('snapshot_month', { ascending: false }).limit(1).maybeSingle(),
     ]);
 
-    if (settingsRes.data) setSettings(settingsRes.data);
+    if (settingsRes.data) {
+      setSettings(settingsRes.data);
+      setContributionCurrency((settingsRes.data.currency as 'USD' | 'ILS') || 'USD');
+    }
     if (ammoRes.data) setAmmoState(ammoRes.data);
     if (snapshotRes.data) {
-      setCashValue(Number(snapshotRes.data.cash_value));
-      setStocksValue(Number(snapshotRes.data.stocks_value));
+      setValueSp(Number(snapshotRes.data.value_sp) || 0);
+      setValueTa(Number(snapshotRes.data.value_ta) || 0);
+      setValueCash(Number(snapshotRes.data.cash_value) || 0);
     }
     setLoading(false);
   };
@@ -74,13 +88,15 @@ export default function Update() {
       return;
     }
 
-    const totalValue = cashValue + stocksValue;
+    const totalValue = valueSp + valueTa + valueCash;
     const portfolio = {
-      cashValue,
-      stocksValue,
+      valueCash,
+      valueSp,
+      valueTa,
       totalValue,
-      cashPercent: totalValue > 0 ? (cashValue / totalValue) * 100 : 0,
-      stocksPercent: totalValue > 0 ? (stocksValue / totalValue) * 100 : 0,
+      percentCash: totalValue > 0 ? (valueCash / totalValue) * 100 : 0,
+      percentSp: totalValue > 0 ? (valueSp / totalValue) * 100 : 0,
+      percentTa: totalValue > 0 ? (valueTa / totalValue) * 100 : 0,
     };
 
     const drawdownPercent = calculateDrawdown(marketData.last_price, marketData.high_52w);
@@ -101,84 +117,106 @@ export default function Update() {
   };
 
   const saveUpdate = async () => {
-    if (!settings || !marketData || !recommendation) return;
+    if (!settings) return;
     setSaving(true);
 
     const today = new Date();
     const snapshotMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
-    const totalValue = cashValue + stocksValue;
-    const drawdownPercent = calculateDrawdown(marketData.last_price, marketData.high_52w);
+    const totalValue = valueSp + valueTa + valueCash;
+    const drawdownPercent = marketData ? calculateDrawdown(marketData.last_price, marketData.high_52w) : null;
 
     try {
-      // Save portfolio snapshot
+      // Save portfolio snapshot (3-bucket model)
+      // Note: Using both old column names (cash_value, stocks_value) and new ones (value_sp, value_ta)
       const { data: snapshot, error: snapshotError } = await supabase
         .from('portfolio_snapshots')
         .upsert({
           user_id: user!.id,
           snapshot_month: snapshotMonth,
-          cash_value: cashValue,
-          stocks_value: stocksValue,
+          cash_value: valueCash,
+          stocks_value: valueSp + valueTa, // Legacy column for backward compat
+          value_sp: valueSp,
+          value_ta: valueTa,
           total_value: totalValue,
-          cash_percent: totalValue > 0 ? (cashValue / totalValue) * 100 : 0,
-          stocks_percent: totalValue > 0 ? (stocksValue / totalValue) * 100 : 0,
+          cash_percent: totalValue > 0 ? (valueCash / totalValue) * 100 : 0,
+          stocks_percent: totalValue > 0 ? ((valueSp + valueTa) / totalValue) * 100 : 0,
+          percent_sp: totalValue > 0 ? (valueSp / totalValue) * 100 : 0,
+          percent_ta: totalValue > 0 ? (valueTa / totalValue) * 100 : 0,
         }, { onConflict: 'user_id,snapshot_month' })
         .select()
         .single();
 
       if (snapshotError) throw snapshotError;
 
-      // Save market state
-      await supabase.from('market_state').insert({
-        user_id: user!.id,
-        ticker: 'SPY',
-        last_price: marketData.last_price,
-        high_52w: marketData.high_52w,
-        as_of_date: marketData.as_of_date,
-        drawdown_percent: drawdownPercent,
-      });
+      // Save contribution (Option A: overwrite existing for this snapshot)
+      if (contributionAmount > 0) {
+        await supabase
+          .from('contributions')
+          .upsert({
+            user_id: user!.id,
+            snapshot_id: snapshot.id,
+            amount: contributionAmount,
+            currency: contributionCurrency,
+            contribution_type: contributionType,
+          }, { onConflict: 'snapshot_id' });
+      }
 
-      // Save recommendation
-      await supabase.from('recommendations_log').insert({
-        user_id: user!.id,
-        snapshot_id: snapshot.id,
-        recommendation_type: recommendation.recommendation_type,
-        recommendation_text: recommendation.recommendation_text,
-        transfer_amount: recommendation.transfer_amount,
-        drawdown_percent: drawdownPercent,
-        market_status: recommendation.market_status,
-      });
-
-      // Update ammo state and send email alert if ammo was fired
-      if (recommendation.recommendation_type.startsWith('FIRE_AMMO')) {
-        const updates = {
+      // Only save market state and recommendation if market data is available
+      if (marketData && recommendation) {
+        // Save market state
+        await supabase.from('market_state').insert({
           user_id: user!.id,
-          tranche_1_used: recommendation.recommendation_type === 'FIRE_AMMO_1' ? true : (ammoState?.tranche_1_used ?? false),
-          tranche_2_used: recommendation.recommendation_type === 'FIRE_AMMO_2' ? true : (ammoState?.tranche_2_used ?? false),
-          tranche_3_used: recommendation.recommendation_type === 'FIRE_AMMO_3' ? true : (ammoState?.tranche_3_used ?? false),
-        };
-        
-        await supabase.from('ammo_state').upsert(updates, { onConflict: 'user_id' });
+          ticker: 'SPY',
+          last_price: marketData.last_price,
+          high_52w: marketData.high_52w,
+          as_of_date: marketData.as_of_date,
+          drawdown_percent: drawdownPercent,
+        });
 
-        // Send email alert
-        try {
-          await supabase.functions.invoke('send-ammo-alert', {
-            body: {
-              email: user!.email,
-              recommendation_type: recommendation.recommendation_type,
-              recommendation_text: recommendation.recommendation_text,
-              drawdown_percent: drawdownPercent,
-              transfer_amount: recommendation.transfer_amount,
-              market_status: recommendation.market_status,
-            },
-          });
-          toast({ title: 'Email alert sent!' });
-        } catch (emailErr) {
-          console.error('Failed to send email alert:', emailErr);
+        // Save recommendation
+        await supabase.from('recommendations_log').insert({
+          user_id: user!.id,
+          snapshot_id: snapshot.id,
+          recommendation_type: recommendation.recommendation_type,
+          recommendation_text: recommendation.recommendation_text,
+          transfer_amount: recommendation.transfer_amount,
+          drawdown_percent: drawdownPercent,
+          market_status: recommendation.market_status,
+        });
+
+        // Update ammo state and send email alert if ammo was fired
+        if (recommendation.recommendation_type.startsWith('FIRE_AMMO')) {
+          const updates = {
+            user_id: user!.id,
+            tranche_1_used: recommendation.recommendation_type === 'FIRE_AMMO_1' ? true : (ammoState?.tranche_1_used ?? false),
+            tranche_2_used: recommendation.recommendation_type === 'FIRE_AMMO_2' ? true : (ammoState?.tranche_2_used ?? false),
+            tranche_3_used: recommendation.recommendation_type === 'FIRE_AMMO_3' ? true : (ammoState?.tranche_3_used ?? false),
+          };
+          
+          await supabase.from('ammo_state').upsert(updates, { onConflict: 'user_id' });
+
+          // Send email alert
+          try {
+            await supabase.functions.invoke('send-ammo-alert', {
+              body: {
+                email: user!.email,
+                recommendation_type: recommendation.recommendation_type,
+                recommendation_text: recommendation.recommendation_text,
+                drawdown_percent: drawdownPercent,
+                transfer_amount: recommendation.transfer_amount,
+                market_status: recommendation.market_status,
+              },
+            });
+            toast({ title: 'Email alert sent!' });
+          } catch (emailErr) {
+            console.error('Failed to send email alert:', emailErr);
+          }
         }
       }
 
       toast({ title: 'Update saved!' });
       setRecommendation(null);
+      setContributionAmount(0);
       loadData();
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Error', description: err.message });
@@ -210,6 +248,8 @@ export default function Update() {
   }
 
   const StatusConfig = recommendation ? marketStatusConfig[recommendation.market_status] : null;
+  const currencySymbol = getCurrencySymbol(settings.currency);
+  const contribSymbol = getCurrencySymbol(contributionCurrency);
 
   return (
     <Layout>
@@ -219,31 +259,93 @@ export default function Update() {
           <p className="text-muted-foreground">Enter your current portfolio values and get a recommendation</p>
         </div>
 
+        {/* 3-Bucket Portfolio Values */}
         <Card>
           <CardHeader>
             <CardTitle>Portfolio Values</CardTitle>
-            <CardDescription>Enter your current account balances</CardDescription>
+            <CardDescription>Enter your current account balances (3 buckets)</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
+          <CardContent className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Cash Value ($)</Label>
+              <Label>S&P / SPY ({currencySymbol})</Label>
               <Input
                 type="number"
-                value={cashValue}
-                onChange={(e) => setCashValue(parseFloat(e.target.value) || 0)}
+                value={valueSp}
+                onChange={(e) => setValueSp(parseFloat(e.target.value) || 0)}
               />
             </div>
             <div className="space-y-2">
-              <Label>Stocks Value ($)</Label>
+              <Label>TA-125 ({currencySymbol})</Label>
               <Input
                 type="number"
-                value={stocksValue}
-                onChange={(e) => setStocksValue(parseFloat(e.target.value) || 0)}
+                value={valueTa}
+                onChange={(e) => setValueTa(parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Cash / MMF ({currencySymbol})</Label>
+              <Input
+                type="number"
+                value={valueCash}
+                onChange={(e) => setValueCash(parseFloat(e.target.value) || 0)}
               />
             </div>
           </CardContent>
         </Card>
 
+        {/* Contribution Tracking */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Contribution</CardTitle>
+            <CardDescription>Record this month's contribution (optional)</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Amount</Label>
+                <Input
+                  type="number"
+                  value={contributionAmount}
+                  onChange={(e) => setContributionAmount(parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Currency</Label>
+                <Select
+                  value={contributionCurrency}
+                  onValueChange={(v) => setContributionCurrency(v as 'USD' | 'ILS')}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                    <SelectItem value="ILS">ILS (₪)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select
+                  value={contributionType}
+                  onValueChange={(v) => setContributionType(v as 'monthly' | 'bonus' | 'adjustment')}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">Monthly deposit</SelectItem>
+                    <SelectItem value="bonus">Bonus / one-time</SelectItem>
+                    <SelectItem value="adjustment">Manual adjustment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Market Data */}
         <Card>
           <CardHeader>
             <CardTitle>Market Data</CardTitle>
@@ -293,12 +395,10 @@ export default function Update() {
           </Alert>
         )}
 
-        {recommendation && (
-          <Button onClick={saveUpdate} disabled={saving} className="w-full">
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-            Save Update
-          </Button>
-        )}
+        <Button onClick={saveUpdate} disabled={saving} className="w-full">
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+          Save Update
+        </Button>
       </div>
     </Layout>
   );

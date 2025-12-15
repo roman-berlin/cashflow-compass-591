@@ -44,6 +44,44 @@ export type Database = {
         }
         Relationships: []
       }
+      contributions: {
+        Row: {
+          amount: number
+          contribution_type: string
+          created_at: string
+          currency: string
+          id: string
+          snapshot_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          contribution_type: string
+          created_at?: string
+          currency?: string
+          id?: string
+          snapshot_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          contribution_type?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          snapshot_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contributions_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: true
+            referencedRelation: "portfolio_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       market_state: {
         Row: {
           as_of_date: string
@@ -83,33 +121,45 @@ export type Database = {
           cash_value: number
           created_at: string
           id: string
+          percent_sp: number | null
+          percent_ta: number | null
           snapshot_month: string
           stocks_percent: number | null
           stocks_value: number
           total_value: number | null
           user_id: string
+          value_sp: number
+          value_ta: number
         }
         Insert: {
           cash_percent?: number | null
           cash_value: number
           created_at?: string
           id?: string
+          percent_sp?: number | null
+          percent_ta?: number | null
           snapshot_month: string
           stocks_percent?: number | null
           stocks_value: number
           total_value?: number | null
           user_id: string
+          value_sp?: number
+          value_ta?: number
         }
         Update: {
           cash_percent?: number | null
           cash_value?: number
           created_at?: string
           id?: string
+          percent_sp?: number | null
+          percent_ta?: number | null
           snapshot_month?: string
           stocks_percent?: number | null
           stocks_value?: number
           total_value?: number | null
           user_id?: string
+          value_sp?: number
+          value_ta?: number
         }
         Relationships: []
       }
@@ -160,6 +210,8 @@ export type Database = {
       settings: {
         Row: {
           ammo_tranche_count: number
+          cash_max_pct: number
+          cash_min_pct: number
           cash_target_percent: number
           contribution_split_cash_percent: number
           contribution_split_stocks_percent: number
@@ -178,6 +230,8 @@ export type Database = {
         }
         Insert: {
           ammo_tranche_count?: number
+          cash_max_pct?: number
+          cash_min_pct?: number
           cash_target_percent?: number
           contribution_split_cash_percent?: number
           contribution_split_stocks_percent?: number
@@ -196,6 +250,8 @@ export type Database = {
         }
         Update: {
           ammo_tranche_count?: number
+          cash_max_pct?: number
+          cash_min_pct?: number
           cash_target_percent?: number
           contribution_split_cash_percent?: number
           contribution_split_stocks_percent?: number

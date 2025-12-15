@@ -4,8 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, TrendingUp, Wallet, PiggyBank, Target } from 'lucide-react';
+import { Loader2, TrendingUp, Wallet, PiggyBank, Target, DollarSign } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { getCurrencySymbol, formatCurrency } from '@/lib/currency';
 import type { Tables } from '@/integrations/supabase/types';
 
 export default function Dashboard() {
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [latestSnapshot, setLatestSnapshot] = useState<Tables<'portfolio_snapshots'> | null>(null);
   const [ammoState, setAmmoState] = useState<Tables<'ammo_state'> | null>(null);
   const [settings, setSettings] = useState<Tables<'settings'> | null>(null);
+  const [latestContribution, setLatestContribution] = useState<Tables<'contributions'> | null>(null);
 
   useEffect(() => {
     if (user) loadData();
@@ -29,7 +31,18 @@ export default function Dashboard() {
 
     if (snapshotsRes.data) {
       setSnapshots(snapshotsRes.data);
-      setLatestSnapshot(snapshotsRes.data[snapshotsRes.data.length - 1] || null);
+      const latest = snapshotsRes.data[snapshotsRes.data.length - 1] || null;
+      setLatestSnapshot(latest);
+
+      // Fetch latest contribution
+      if (latest) {
+        const { data: contrib } = await supabase
+          .from('contributions')
+          .select('*')
+          .eq('snapshot_id', latest.id)
+          .maybeSingle();
+        if (contrib) setLatestContribution(contrib);
+      }
     }
     if (ammoRes.data) setAmmoState(ammoRes.data);
     if (settingsRes.data) setSettings(settingsRes.data);
@@ -46,15 +59,22 @@ export default function Dashboard() {
     );
   }
 
-  const pieData = latestSnapshot ? [
-    { name: 'Stocks', value: Number(latestSnapshot.stocks_value), color: 'hsl(var(--primary))' },
-    { name: 'Cash', value: Number(latestSnapshot.cash_value), color: 'hsl(var(--muted-foreground))' },
-  ] : [];
+  const currency = settings?.currency || 'USD';
+  const currencySymbol = getCurrencySymbol(currency);
 
+  // 3-bucket pie chart (use cash_value as it still exists in DB alongside new columns)
+  const pieData = latestSnapshot ? [
+    { name: 'S&P', value: Number(latestSnapshot.value_sp), color: 'hsl(var(--primary))' },
+    { name: 'TA-125', value: Number(latestSnapshot.value_ta), color: 'hsl(var(--accent))' },
+    { name: 'Cash', value: Number(latestSnapshot.cash_value), color: 'hsl(var(--muted-foreground))' },
+  ].filter(d => d.value > 0) : [];
+
+  // Line chart with 3 buckets
   const lineData = snapshots.map((s) => ({
     month: new Date(s.snapshot_month).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
     total: Number(s.total_value),
-    stocks: Number(s.stocks_value),
+    sp: Number(s.value_sp),
+    ta: Number(s.value_ta),
     cash: Number(s.cash_value),
   }));
 
@@ -64,6 +84,17 @@ export default function Dashboard() {
     { label: 'T3 (30%)', used: ammoState?.tranche_3_used },
   ];
 
+  const totalEquities = latestSnapshot ? Number(latestSnapshot.value_sp) + Number(latestSnapshot.value_ta) : 0;
+  const equitiesPercent = latestSnapshot && Number(latestSnapshot.total_value) > 0
+    ? ((totalEquities / Number(latestSnapshot.total_value)) * 100).toFixed(1)
+    : '0';
+
+  const contributionTypeLabels: Record<string, string> = {
+    monthly: 'Monthly deposit',
+    bonus: 'Bonus / one-time',
+    adjustment: 'Manual adjustment',
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -72,8 +103,8 @@ export default function Dashboard() {
           <p className="text-muted-foreground">Your portfolio overview</p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Stats Cards - 3 buckets */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Value</CardTitle>
@@ -81,21 +112,35 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">
-                ${latestSnapshot ? Number(latestSnapshot.total_value).toLocaleString() : '0'}
+                {currencySymbol}{latestSnapshot ? Number(latestSnapshot.total_value).toLocaleString() : '0'}
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Stocks</CardTitle>
+              <CardTitle className="text-sm font-medium">S&P / SPY</CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">
-                ${latestSnapshot ? Number(latestSnapshot.stocks_value).toLocaleString() : '0'}
+                {currencySymbol}{latestSnapshot ? Number(latestSnapshot.value_sp).toLocaleString() : '0'}
               </p>
               <p className="text-xs text-muted-foreground">
-                {latestSnapshot ? `${Number(latestSnapshot.stocks_percent).toFixed(1)}%` : '0%'}
+                {latestSnapshot ? `${Number(latestSnapshot.percent_sp).toFixed(1)}%` : '0%'}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">TA-125</CardTitle>
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">
+                {currencySymbol}{latestSnapshot ? Number(latestSnapshot.value_ta).toLocaleString() : '0'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {latestSnapshot ? `${Number(latestSnapshot.percent_ta).toFixed(1)}%` : '0%'}
               </p>
             </CardContent>
           </Card>
@@ -106,7 +151,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold">
-                ${latestSnapshot ? Number(latestSnapshot.cash_value).toLocaleString() : '0'}
+                {currencySymbol}{latestSnapshot ? Number(latestSnapshot.cash_value).toLocaleString() : '0'}
               </p>
               <p className="text-xs text-muted-foreground">
                 {latestSnapshot ? `${Number(latestSnapshot.cash_percent).toFixed(1)}%` : '0%'}
@@ -122,16 +167,34 @@ export default function Dashboard() {
               <p className="text-sm">
                 {settings ? `${settings.stocks_target_percent}% / ${settings.cash_target_percent}%` : '70% / 30%'}
               </p>
-              <p className="text-xs text-muted-foreground">Stocks / Cash</p>
+              <p className="text-xs text-muted-foreground">Equities / Cash</p>
             </CardContent>
           </Card>
         </div>
+
+        {/* Last Contribution Card */}
+        {latestContribution && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Last Contribution</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-2xl font-bold">
+                {getCurrencySymbol(latestContribution.currency)}{Number(latestContribution.amount).toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {contributionTypeLabels[latestContribution.contribution_type] || latestContribution.contribution_type}
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Ammo Status */}
         <Card>
           <CardHeader>
             <CardTitle>Ammo Status</CardTitle>
-            <CardDescription>Cash tranches ready to deploy during market downturns</CardDescription>
+            <CardDescription>Cash tranches ready to deploy during market downturns (each = 1/3 of cash)</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex gap-2">
@@ -167,7 +230,7 @@ export default function Dashboard() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
+                    <Tooltip formatter={(value: number) => `${currencySymbol}${value.toLocaleString()}`} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
@@ -185,11 +248,12 @@ export default function Dashboard() {
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={lineData}>
                     <XAxis dataKey="month" />
-                    <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
+                    <YAxis tickFormatter={(v) => `${currencySymbol}${(v / 1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(value: number) => `${currencySymbol}${value.toLocaleString()}`} />
                     <Legend />
                     <Line type="monotone" dataKey="total" name="Total" stroke="hsl(var(--primary))" strokeWidth={2} />
-                    <Line type="monotone" dataKey="stocks" name="Stocks" stroke="hsl(var(--accent-foreground))" strokeWidth={1} />
+                    <Line type="monotone" dataKey="sp" name="S&P" stroke="hsl(var(--chart-1))" strokeWidth={1} />
+                    <Line type="monotone" dataKey="ta" name="TA-125" stroke="hsl(var(--chart-2))" strokeWidth={1} />
                     <Line type="monotone" dataKey="cash" name="Cash" stroke="hsl(var(--muted-foreground))" strokeWidth={1} />
                   </LineChart>
                 </ResponsiveContainer>
