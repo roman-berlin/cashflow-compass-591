@@ -10,9 +10,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, RefreshCw, TrendingDown, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Loader2, RefreshCw, TrendingDown, TrendingUp, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { runStrategy, calculateDrawdown, type StrategyResult, type MarketStatus } from '@/lib/strategy';
-import { getCurrencySymbol, formatCurrency } from '@/lib/currency';
+import { getCurrencySymbol } from '@/lib/currency';
 import type { Tables } from '@/integrations/supabase/types';
 
 const marketStatusConfig: Record<MarketStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof TrendingUp }> = {
@@ -29,15 +29,16 @@ export default function Update() {
   const [fetchingMarket, setFetchingMarket] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // 3-bucket portfolio values
+  // Per-asset contribution inputs
+  const [contributionSpy, setContributionSpy] = useState(0);
+  const [contributionTa, setContributionTa] = useState(0);
+  const [contributionCash, setContributionCash] = useState(0);
+  const [contributionCurrency, setContributionCurrency] = useState<'USD' | 'NIS'>('NIS');
+
+  // Portfolio values from last snapshot (for strategy engine)
   const [valueSp, setValueSp] = useState(0);
   const [valueTa, setValueTa] = useState(0);
   const [valueCash, setValueCash] = useState(0);
-
-  // Contribution tracking
-  const [contributionAmount, setContributionAmount] = useState(0);
-  const [contributionCurrency, setContributionCurrency] = useState<'USD' | 'NIS'>('NIS');
-  const [contributionType, setContributionType] = useState<'monthly' | 'bonus' | 'adjustment'>('monthly');
 
   const [marketData, setMarketData] = useState<{ last_price: number; high_52w: number; as_of_date: string } | null>(null);
   const [settings, setSettings] = useState<Tables<'settings'> | null>(null);
@@ -83,20 +84,22 @@ export default function Update() {
   };
 
   const runStrategyEngine = () => {
-    if (!settings || !marketData) {
-      toast({ variant: 'destructive', title: 'Missing data', description: 'Please fetch market data and ensure settings are configured.' });
-      return;
-    }
+    if (!settings || !marketData) return null;
 
-    const totalValue = valueSp + valueTa + valueCash;
+    // Calculate new portfolio values after contributions
+    const newValueSp = valueSp + contributionSpy;
+    const newValueTa = valueTa + contributionTa;
+    const newValueCash = valueCash + contributionCash;
+    const totalValue = newValueSp + newValueTa + newValueCash;
+
     const portfolio = {
-      valueCash,
-      valueSp,
-      valueTa,
+      valueCash: newValueCash,
+      valueSp: newValueSp,
+      valueTa: newValueTa,
       totalValue,
-      percentCash: totalValue > 0 ? (valueCash / totalValue) * 100 : 0,
-      percentSp: totalValue > 0 ? (valueSp / totalValue) * 100 : 0,
-      percentTa: totalValue > 0 ? (valueTa / totalValue) * 100 : 0,
+      percentCash: totalValue > 0 ? (newValueCash / totalValue) * 100 : 0,
+      percentSp: totalValue > 0 ? (newValueSp / totalValue) * 100 : 0,
+      percentTa: totalValue > 0 ? (newValueTa / totalValue) * 100 : 0,
     };
 
     const drawdownPercent = calculateDrawdown(marketData.last_price, marketData.high_52w);
@@ -112,8 +115,7 @@ export default function Update() {
       tranche3Used: ammoState?.tranche_3_used ?? false,
     };
 
-    const result = runStrategy(portfolio, market, ammo, settings);
-    setRecommendation(result);
+    return runStrategy(portfolio, market, ammo, settings);
   };
 
   const saveUpdate = async () => {
@@ -122,47 +124,60 @@ export default function Update() {
 
     const today = new Date();
     const snapshotMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
-    const totalValue = valueSp + valueTa + valueCash;
+    
+    // Calculate new portfolio values after contributions
+    const newValueSp = valueSp + contributionSpy;
+    const newValueTa = valueTa + contributionTa;
+    const newValueCash = valueCash + contributionCash;
+    const totalValue = newValueSp + newValueTa + newValueCash;
+    const totalContribution = contributionSpy + contributionTa + contributionCash;
+
+    // Auto-run strategy if market data is available
+    let strategyResult: StrategyResult | null = null;
+    if (marketData && settings) {
+      strategyResult = runStrategyEngine();
+      setRecommendation(strategyResult);
+    }
+
     const drawdownPercent = marketData ? calculateDrawdown(marketData.last_price, marketData.high_52w) : null;
 
     try {
       // Save portfolio snapshot (3-bucket model)
-      // Note: Using both old column names (cash_value, stocks_value) and new ones (value_sp, value_ta)
       const { data: snapshot, error: snapshotError } = await supabase
         .from('portfolio_snapshots')
         .upsert({
           user_id: user!.id,
           snapshot_month: snapshotMonth,
-          cash_value: valueCash,
-          stocks_value: valueSp + valueTa, // Legacy column for backward compat
-          value_sp: valueSp,
-          value_ta: valueTa,
+          cash_value: newValueCash,
+          stocks_value: newValueSp + newValueTa,
+          value_sp: newValueSp,
+          value_ta: newValueTa,
           total_value: totalValue,
-          cash_percent: totalValue > 0 ? (valueCash / totalValue) * 100 : 0,
-          stocks_percent: totalValue > 0 ? ((valueSp + valueTa) / totalValue) * 100 : 0,
-          percent_sp: totalValue > 0 ? (valueSp / totalValue) * 100 : 0,
-          percent_ta: totalValue > 0 ? (valueTa / totalValue) * 100 : 0,
+          cash_percent: totalValue > 0 ? (newValueCash / totalValue) * 100 : 0,
+          stocks_percent: totalValue > 0 ? ((newValueSp + newValueTa) / totalValue) * 100 : 0,
+          percent_sp: totalValue > 0 ? (newValueSp / totalValue) * 100 : 0,
+          percent_ta: totalValue > 0 ? (newValueTa / totalValue) * 100 : 0,
         }, { onConflict: 'user_id,snapshot_month' })
         .select()
         .single();
 
       if (snapshotError) throw snapshotError;
 
-      // Save contribution (Option A: overwrite existing for this snapshot)
-      if (contributionAmount > 0) {
+      // Save contribution if any amount was entered
+      if (totalContribution > 0) {
         await supabase
           .from('contributions')
           .upsert({
             user_id: user!.id,
             snapshot_id: snapshot.id,
-            amount: contributionAmount,
+            amount: totalContribution,
             currency: contributionCurrency,
-            contribution_type: contributionType,
+            contribution_type: 'monthly',
           }, { onConflict: 'snapshot_id' });
       }
 
       // Only save market state and recommendation if market data is available
-      if (marketData && recommendation) {
+      if (marketData && strategyResult) {
         // Save market state
         await supabase.from('market_state').insert({
           user_id: user!.id,
@@ -177,51 +192,59 @@ export default function Update() {
         await supabase.from('recommendations_log').insert({
           user_id: user!.id,
           snapshot_id: snapshot.id,
-          recommendation_type: recommendation.recommendation_type,
-          recommendation_text: recommendation.recommendation_text,
-          transfer_amount: recommendation.transfer_amount,
+          recommendation_type: strategyResult.recommendation_type,
+          recommendation_text: strategyResult.recommendation_text,
+          transfer_amount: strategyResult.transfer_amount,
           drawdown_percent: drawdownPercent,
-          market_status: recommendation.market_status,
+          market_status: strategyResult.market_status,
         });
 
-        // Update ammo state and create in-app notification if ammo was fired
-        if (recommendation.recommendation_type.startsWith('FIRE_AMMO')) {
+        // Update ammo state if ammo was fired
+        if (strategyResult.recommendation_type.startsWith('FIRE_AMMO')) {
           const updates = {
             user_id: user!.id,
-            tranche_1_used: recommendation.recommendation_type === 'FIRE_AMMO_1' ? true : (ammoState?.tranche_1_used ?? false),
-            tranche_2_used: recommendation.recommendation_type === 'FIRE_AMMO_2' ? true : (ammoState?.tranche_2_used ?? false),
-            tranche_3_used: recommendation.recommendation_type === 'FIRE_AMMO_3' ? true : (ammoState?.tranche_3_used ?? false),
+            tranche_1_used: strategyResult.recommendation_type === 'FIRE_AMMO_1' ? true : (ammoState?.tranche_1_used ?? false),
+            tranche_2_used: strategyResult.recommendation_type === 'FIRE_AMMO_2' ? true : (ammoState?.tranche_2_used ?? false),
+            tranche_3_used: strategyResult.recommendation_type === 'FIRE_AMMO_3' ? true : (ammoState?.tranche_3_used ?? false),
           };
           
           await supabase.from('ammo_state').upsert(updates, { onConflict: 'user_id' });
         }
 
         // Create in-app notification for the recommendation
-        const notificationTitle = recommendation.recommendation_type.startsWith('FIRE_AMMO')
+        const notificationTitle = strategyResult.recommendation_type.startsWith('FIRE_AMMO')
           ? `Tranche deployment recommended`
-          : recommendation.recommendation_type === 'STOP_CASH_OVER_MAX'
+          : strategyResult.recommendation_type === 'STOP_CASH_OVER_MAX'
           ? 'Cash allocation alert'
-          : recommendation.recommendation_type === 'REBUILD_AMMO'
+          : strategyResult.recommendation_type === 'REBUILD_AMMO'
           ? 'Ammo rebuild recommended'
           : 'Strategy update';
 
         await supabase.from('notifications').insert({
           user_id: user!.id,
           title: notificationTitle,
-          message: recommendation.recommendation_text,
+          message: strategyResult.recommendation_text,
           notification_type: 'recommendation',
           metadata: {
-            recommendation_type: recommendation.recommendation_type,
+            recommendation_type: strategyResult.recommendation_type,
             drawdown_percent: drawdownPercent,
-            transfer_amount: recommendation.transfer_amount,
-            market_status: recommendation.market_status,
+            transfer_amount: strategyResult.transfer_amount,
+            market_status: strategyResult.market_status,
           },
+        });
+
+        toast({ title: 'Update saved with recommendation!' });
+      } else {
+        toast({ 
+          title: 'Contributions saved', 
+          description: marketData ? undefined : 'Market data unavailable – recommendation not generated'
         });
       }
 
-      toast({ title: 'Update saved!' });
-      setRecommendation(null);
-      setContributionAmount(0);
+      // Reset contribution inputs
+      setContributionSpy(0);
+      setContributionTa(0);
+      setContributionCash(0);
       loadData();
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Error', description: err.message });
@@ -253,75 +276,62 @@ export default function Update() {
   }
 
   const StatusConfig = recommendation ? marketStatusConfig[recommendation.market_status] : null;
-  const currencySymbol = getCurrencySymbol(settings.currency);
-  const contribSymbol = getCurrencySymbol(contributionCurrency);
+  const currencySymbol = getCurrencySymbol(contributionCurrency);
+  const totalContribution = contributionSpy + contributionTa + contributionCash;
 
   return (
     <Layout>
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Monthly Update</h1>
-          <p className="text-muted-foreground">Enter your current portfolio values and get a recommendation</p>
+          <h1 className="text-2xl font-bold">Portfolio Update</h1>
+          <p className="text-muted-foreground">Record your contributions and get a recommendation</p>
         </div>
 
-        {/* 3-Bucket Portfolio Values */}
+        {/* Per-Asset Contributions */}
         <Card>
           <CardHeader>
-            <CardTitle>Portfolio Values</CardTitle>
-            <CardDescription>Enter your current account balances (3 buckets)</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>S&P / SPY ({currencySymbol})</Label>
-              <Input
-                type="number"
-                value={valueSp}
-                onChange={(e) => setValueSp(parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>TA-125 ({currencySymbol})</Label>
-              <Input
-                type="number"
-                value={valueTa}
-                onChange={(e) => setValueTa(parseFloat(e.target.value) || 0)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Cash / MMF ({currencySymbol})</Label>
-              <Input
-                type="number"
-                value={valueCash}
-                onChange={(e) => setValueCash(parseFloat(e.target.value) || 0)}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Contribution Tracking */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Contribution</CardTitle>
-            <CardDescription>Record this month's contribution (optional)</CardDescription>
+            <CardTitle>Contributions</CardTitle>
+            <CardDescription>Enter how much you're adding to each asset</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Amount</Label>
+                <Label>SPY ({currencySymbol})</Label>
                 <Input
                   type="number"
-                  value={contributionAmount}
-                  onChange={(e) => setContributionAmount(parseFloat(e.target.value) || 0)}
+                  value={contributionSpy || ''}
+                  onChange={(e) => setContributionSpy(parseFloat(e.target.value) || 0)}
                   placeholder="0"
                 />
               </div>
               <div className="space-y-2">
+                <Label>TA-125 ({currencySymbol})</Label>
+                <Input
+                  type="number"
+                  value={contributionTa || ''}
+                  onChange={(e) => setContributionTa(parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Cash / MMF ({currencySymbol})</Label>
+                <Input
+                  type="number"
+                  value={contributionCash || ''}
+                  onChange={(e) => setContributionCash(parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between pt-2 border-t">
+              <div className="space-y-1">
                 <Label>Currency</Label>
                 <Select
                   value={contributionCurrency}
                   onValueChange={(v) => setContributionCurrency(v as 'USD' | 'NIS')}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -330,21 +340,9 @@ export default function Update() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Type</Label>
-                <Select
-                  value={contributionType}
-                  onValueChange={(v) => setContributionType(v as 'monthly' | 'bonus' | 'adjustment')}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monthly">Monthly deposit</SelectItem>
-                    <SelectItem value="bonus">Bonus / one-time</SelectItem>
-                    <SelectItem value="adjustment">Manual adjustment</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Total Contribution</p>
+                <p className="text-xl font-bold">{currencySymbol}{totalContribution.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -354,7 +352,7 @@ export default function Update() {
         <Card>
           <CardHeader>
             <CardTitle>Market Data</CardTitle>
-            <CardDescription>SPY market information</CardDescription>
+            <CardDescription>SPY market information for strategy recommendations</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Button onClick={fetchMarketData} disabled={fetchingMarket} variant="outline" className="w-full">
@@ -379,12 +377,14 @@ export default function Update() {
                 </div>
               </div>
             )}
+            {!marketData && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Info className="h-4 w-4" />
+                <span>Fetch market data to receive a strategy recommendation</span>
+              </div>
+            )}
           </CardContent>
         </Card>
-
-        <Button onClick={runStrategyEngine} disabled={!marketData} className="w-full">
-          Run Strategy Engine
-        </Button>
 
         {recommendation && StatusConfig && (
           <Alert>
@@ -400,7 +400,7 @@ export default function Update() {
           </Alert>
         )}
 
-        <Button onClick={saveUpdate} disabled={saving} className="w-full">
+        <Button onClick={saveUpdate} disabled={saving} className="w-full" size="lg">
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
           Save Update
         </Button>
