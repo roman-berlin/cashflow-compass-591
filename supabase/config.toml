@@ -2,3 +2,6 @@ project_id = "kbmomlmiazkiceemprpz"
 
 [functions.get-market-data]
 verify_jwt = true
+
+[functions.send-ammo-alert]
+verify_jwt = true
