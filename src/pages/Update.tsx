@@ -148,7 +148,7 @@ export default function Update() {
         market_status: recommendation.market_status,
       });
 
-      // Update ammo state if ammo was fired
+      // Update ammo state and send email alert if ammo was fired
       if (recommendation.recommendation_type.startsWith('FIRE_AMMO')) {
         const updates = {
           user_id: user!.id,
@@ -158,6 +158,23 @@ export default function Update() {
         };
         
         await supabase.from('ammo_state').upsert(updates, { onConflict: 'user_id' });
+
+        // Send email alert
+        try {
+          await supabase.functions.invoke('send-ammo-alert', {
+            body: {
+              email: user!.email,
+              recommendation_type: recommendation.recommendation_type,
+              recommendation_text: recommendation.recommendation_text,
+              drawdown_percent: drawdownPercent,
+              transfer_amount: recommendation.transfer_amount,
+              market_status: recommendation.market_status,
+            },
+          });
+          toast({ title: 'Email alert sent!' });
+        } catch (emailErr) {
+          console.error('Failed to send email alert:', emailErr);
+        }
       }
 
       toast({ title: 'Update saved!' });
