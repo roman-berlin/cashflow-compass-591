@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { TrendingUp, Settings, PlusCircle, LayoutDashboard, History, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -40,10 +41,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
           </nav>
-          <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
-            <LogOut className="h-4 w-4" />
-            <span className="hidden md:inline">Sign Out</span>
-          </Button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
+              <LogOut className="h-4 w-4" />
+              <span className="hidden md:inline">Sign Out</span>
+            </Button>
+          </div>
         </div>
         {/* Mobile nav */}
         <nav className="md:hidden flex items-center justify-around border-t border-border py-2">
