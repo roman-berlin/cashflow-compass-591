@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, RotateCcw } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
@@ -15,7 +16,7 @@ export default function Settings() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState<Partial<Tables<'settings'>>>({
+  const [settings, setSettings] = useState<Partial<Tables<'settings'>> & { currency?: string }>({
     monthly_contribution_total: 0,
     stocks_target_percent: 70,
     cash_target_percent: 30,
@@ -26,6 +27,7 @@ export default function Settings() {
     tranche_3_trigger: 30,
     rebuild_threshold: 10,
     stop_cash_threshold: 50,
+    currency: 'USD',
   });
 
   useEffect(() => {
@@ -81,9 +83,11 @@ export default function Settings() {
     }
   };
 
-  const updateField = (field: string, value: number) => {
+  const updateField = (field: string, value: number | string) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
   };
+
+  const currencySymbol = settings.currency === 'NIS' ? '₪' : '$';
 
   if (loading) {
     return (
@@ -105,12 +109,36 @@ export default function Settings() {
 
         <Card>
           <CardHeader>
+            <CardTitle>General Settings</CardTitle>
+            <CardDescription>Basic preferences for your account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label>Currency</Label>
+              <Select
+                value={settings.currency || 'USD'}
+                onValueChange={(value) => updateField('currency', value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD ($)</SelectItem>
+                  <SelectItem value="NIS">NIS (₪)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Contribution Settings</CardTitle>
             <CardDescription>How much you contribute each month</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Monthly Contribution Total ($)</Label>
+              <Label>Monthly Contribution Total ({currencySymbol})</Label>
               <Input
                 type="number"
                 value={settings.monthly_contribution_total}
