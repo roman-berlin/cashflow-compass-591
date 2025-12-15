@@ -29,7 +29,7 @@ export default function Settings() {
     rebuild_threshold: 10,
     cash_min_pct: 20,
     cash_max_pct: 35,
-    currency: 'ILS',
+    currency: 'NIS',
   });
 
   useEffect(() => {
@@ -118,7 +118,7 @@ export default function Settings() {
             <div className="space-y-2">
               <Label>Currency</Label>
               <Select
-                value={settings.currency || 'USD'}
+                value={settings.currency === 'ILS' ? 'NIS' : (settings.currency || 'NIS')}
                 onValueChange={(value) => updateField('currency', value)}
               >
                 <SelectTrigger className="w-full">
@@ -126,7 +126,7 @@ export default function Settings() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="USD">USD ($)</SelectItem>
-                  <SelectItem value="ILS">ILS (₪)</SelectItem>
+                  <SelectItem value="NIS">NIS (₪)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

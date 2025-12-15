@@ -36,7 +36,7 @@ export default function Update() {
 
   // Contribution tracking
   const [contributionAmount, setContributionAmount] = useState(0);
-  const [contributionCurrency, setContributionCurrency] = useState<'USD' | 'ILS'>('ILS');
+  const [contributionCurrency, setContributionCurrency] = useState<'USD' | 'NIS'>('NIS');
   const [contributionType, setContributionType] = useState<'monthly' | 'bonus' | 'adjustment'>('monthly');
 
   const [marketData, setMarketData] = useState<{ last_price: number; high_52w: number; as_of_date: string } | null>(null);
@@ -57,7 +57,7 @@ export default function Update() {
 
     if (settingsRes.data) {
       setSettings(settingsRes.data);
-      setContributionCurrency((settingsRes.data.currency as 'USD' | 'ILS') || 'USD');
+      setContributionCurrency(settingsRes.data.currency === 'ILS' ? 'NIS' : (settingsRes.data.currency as 'USD' | 'NIS') || 'NIS');
     }
     if (ammoRes.data) setAmmoState(ammoRes.data);
     if (snapshotRes.data) {
@@ -319,14 +319,14 @@ export default function Update() {
                 <Label>Currency</Label>
                 <Select
                   value={contributionCurrency}
-                  onValueChange={(v) => setContributionCurrency(v as 'USD' | 'ILS')}
+                  onValueChange={(v) => setContributionCurrency(v as 'USD' | 'NIS')}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="USD">USD ($)</SelectItem>
-                    <SelectItem value="ILS">ILS (₪)</SelectItem>
+                    <SelectItem value="NIS">NIS (₪)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
