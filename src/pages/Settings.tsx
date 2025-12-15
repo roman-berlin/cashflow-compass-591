@@ -29,7 +29,7 @@ export default function Settings() {
     rebuild_threshold: 10,
     cash_min_pct: 20,
     cash_max_pct: 35,
-    currency: 'USD',
+    currency: 'ILS',
   });
 
   useEffect(() => {
