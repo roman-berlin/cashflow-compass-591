@@ -4,9 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, TrendingUp, Wallet, PiggyBank, Target, DollarSign, Bell } from 'lucide-react';
+import { Loader2, TrendingUp, Wallet, PiggyBank, Target, DollarSign, Bell, CheckCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
-import { getCurrencySymbol, formatCurrency } from '@/lib/currency';
+import { getCurrencySymbol } from '@/lib/currency';
 import type { Tables } from '@/integrations/supabase/types';
 
 export default function Dashboard() {
@@ -18,17 +18,19 @@ export default function Dashboard() {
   const [settings, setSettings] = useState<Tables<'settings'> | null>(null);
   const [latestContribution, setLatestContribution] = useState<Tables<'contributions'> | null>(null);
   const [latestNotification, setLatestNotification] = useState<Tables<'notifications'> | null>(null);
+  const [marketState, setMarketState] = useState<Tables<'market_state'> | null>(null);
 
   useEffect(() => {
     if (user) loadData();
   }, [user]);
 
   const loadData = async () => {
-    const [snapshotsRes, ammoRes, settingsRes, notifRes] = await Promise.all([
+    const [snapshotsRes, ammoRes, settingsRes, notifRes, marketRes] = await Promise.all([
       supabase.from('portfolio_snapshots').select('*').eq('user_id', user!.id).order('snapshot_month', { ascending: true }),
       supabase.from('ammo_state').select('*').eq('user_id', user!.id).maybeSingle(),
       supabase.from('settings').select('*').eq('user_id', user!.id).maybeSingle(),
       supabase.from('notifications').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('market_state').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
 
     if (snapshotsRes.data) {
@@ -49,6 +51,7 @@ export default function Dashboard() {
     if (ammoRes.data) setAmmoState(ammoRes.data);
     if (settingsRes.data) setSettings(settingsRes.data);
     if (notifRes.data) setLatestNotification(notifRes.data);
+    if (marketRes.data) setMarketState(marketRes.data);
     setLoading(false);
   };
 
@@ -82,15 +85,21 @@ export default function Dashboard() {
   }));
 
   const ammoBadges = [
-    { label: 'T1 (10%)', used: ammoState?.tranche_1_used },
-    { label: 'T2 (20%)', used: ammoState?.tranche_2_used },
-    { label: 'T3 (30%)', used: ammoState?.tranche_3_used },
+    { label: 'T1', trigger: settings?.tranche_1_trigger || 10, used: ammoState?.tranche_1_used },
+    { label: 'T2', trigger: settings?.tranche_2_trigger || 20, used: ammoState?.tranche_2_used },
+    { label: 'T3', trigger: settings?.tranche_3_trigger || 30, used: ammoState?.tranche_3_used },
   ];
 
-  const totalEquities = latestSnapshot ? Number(latestSnapshot.value_sp) + Number(latestSnapshot.value_ta) : 0;
-  const equitiesPercent = latestSnapshot && Number(latestSnapshot.total_value) > 0
-    ? ((totalEquities / Number(latestSnapshot.total_value)) * 100).toFixed(1)
-    : '0';
+  // Smart "Ammo ready to reset" indicator logic
+  const allAmmoUsed = ammoState?.tranche_1_used && ammoState?.tranche_2_used && ammoState?.tranche_3_used;
+  const currentDrawdown = marketState?.drawdown_percent ? Number(marketState.drawdown_percent) : null;
+  const rebuildThreshold = settings?.rebuild_threshold || 10;
+  const cashPercent = latestSnapshot?.cash_percent ? Number(latestSnapshot.cash_percent) : 0;
+  const cashTarget = settings?.cash_target_percent || 30;
+  
+  const marketRecovered = currentDrawdown !== null && currentDrawdown < rebuildThreshold;
+  const cashRebuilt = cashPercent >= cashTarget;
+  const showAmmoResetReady = allAmmoUsed && marketRecovered && cashRebuilt;
 
   const contributionTypeLabels: Record<string, string> = {
     monthly: 'Monthly deposit',
@@ -223,14 +232,28 @@ export default function Dashboard() {
             <CardTitle>Ammo Status</CardTitle>
             <CardDescription>Cash tranches ready to deploy during market downturns (each = 1/3 of cash)</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
             <div className="flex gap-2">
               {ammoBadges.map((badge) => (
                 <Badge key={badge.label} variant={badge.used ? 'secondary' : 'default'}>
-                  {badge.label}: {badge.used ? 'Used' : 'Ready'}
+                  {badge.label} ({badge.trigger}%): {badge.used ? 'Used' : 'Ready'}
                 </Badge>
               ))}
             </div>
+            
+            {/* Smart Ammo Reset Indicator */}
+            {allAmmoUsed && (
+              <div className={`text-sm p-3 rounded-md ${showAmmoResetReady ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                {showAmmoResetReady ? (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Ammo ready to reset – market recovered and cash at target.</span>
+                  </div>
+                ) : (
+                  <span>Ammo can be reset once the market has recovered and cash is rebuilt to target.</span>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
