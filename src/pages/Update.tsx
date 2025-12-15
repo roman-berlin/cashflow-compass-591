@@ -36,7 +36,7 @@ export default function Update() {
 
   // Contribution tracking
   const [contributionAmount, setContributionAmount] = useState(0);
-  const [contributionCurrency, setContributionCurrency] = useState<'USD' | 'ILS'>('USD');
+  const [contributionCurrency, setContributionCurrency] = useState<'USD' | 'ILS'>('ILS');
   const [contributionType, setContributionType] = useState<'monthly' | 'bonus' | 'adjustment'>('monthly');
 
   const [marketData, setMarketData] = useState<{ last_price: number; high_52w: number; as_of_date: string } | null>(null);

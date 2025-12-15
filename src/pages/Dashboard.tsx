@@ -62,7 +62,7 @@ export default function Dashboard() {
     );
   }
 
-  const currency = settings?.currency || 'USD';
+  const currency = settings?.currency || 'ILS';
   const currencySymbol = getCurrencySymbol(currency);
 
   // 3-bucket pie chart (use cash_value as it still exists in DB alongside new columns)
