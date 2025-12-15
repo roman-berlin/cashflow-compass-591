@@ -1,1 +1,4 @@
 project_id = "kbmomlmiazkiceemprpz"
+
+[functions.get-market-data]
+verify_jwt = true
