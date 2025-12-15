@@ -146,6 +146,7 @@ export default function Update() {
 
     try {
       // Save portfolio snapshot (3-bucket model)
+      // Note: total_value, cash_percent, stocks_percent are generated columns - don't include them
       const { data: snapshot, error: snapshotError } = await supabase
         .from('portfolio_snapshots')
         .upsert({
@@ -155,9 +156,6 @@ export default function Update() {
           stocks_value: newValueSp + newValueTa,
           value_sp: newValueSp,
           value_ta: newValueTa,
-          total_value: totalValue,
-          cash_percent: totalValue > 0 ? (newValueCash / totalValue) * 100 : 0,
-          stocks_percent: totalValue > 0 ? ((newValueSp + newValueTa) / totalValue) * 100 : 0,
           percent_sp: totalValue > 0 ? (newValueSp / totalValue) * 100 : 0,
           percent_ta: totalValue > 0 ? (newValueTa / totalValue) * 100 : 0,
         }, { onConflict: 'user_id,snapshot_month' })
