@@ -10,7 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, RefreshCw, TrendingDown, TrendingUp, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { Loader2, TrendingDown, TrendingUp, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { runStrategy, calculateDrawdown, type StrategyResult, type MarketStatus } from '@/lib/strategy';
 import { getCurrencySymbol } from '@/lib/currency';
 import type { Tables } from '@/integrations/supabase/types';
@@ -26,7 +26,7 @@ export default function Update() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [fetchingMarket, setFetchingMarket] = useState(false);
+  const [marketDataLoading, setMarketDataLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   // Per-asset contribution inputs
@@ -46,7 +46,10 @@ export default function Update() {
   const [recommendation, setRecommendation] = useState<StrategyResult | null>(null);
 
   useEffect(() => {
-    if (user) loadData();
+    if (user) {
+      loadData();
+      fetchMarketData();
+    }
   }, [user]);
 
   const loadData = async () => {
@@ -70,16 +73,16 @@ export default function Update() {
   };
 
   const fetchMarketData = async () => {
-    setFetchingMarket(true);
+    setMarketDataLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('get-market-data');
       if (error) throw error;
       setMarketData(data);
-      toast({ title: 'Market data updated!' });
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Error', description: err.message });
+      // Silent failure - market data unavailable
+      console.error('Failed to fetch market data:', err.message);
     } finally {
-      setFetchingMarket(false);
+      setMarketDataLoading(false);
     }
   };
 
@@ -348,43 +351,39 @@ export default function Update() {
           </CardContent>
         </Card>
 
-        {/* Market Data */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Market Data</CardTitle>
-            <CardDescription>SPY market information for strategy recommendations</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button onClick={fetchMarketData} disabled={fetchingMarket} variant="outline" className="w-full">
-              {fetchingMarket ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Fetch Market Data
-            </Button>
-            {marketData && (
+        {/* Market Status - subtle display */}
+        {marketDataLoading ? (
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-4">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Loading market data...</span>
+          </div>
+        ) : marketData ? (
+          <Card>
+            <CardContent className="pt-6">
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
-                  <p className="text-sm text-muted-foreground">Last Price</p>
-                  <p className="text-xl font-bold">${marketData.last_price.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">SPY Price</p>
+                  <p className="text-lg font-semibold">${marketData.last_price.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">52-Week High</p>
-                  <p className="text-xl font-bold">${marketData.high_52w.toFixed(2)}</p>
+                  <p className="text-lg font-semibold">${marketData.high_52w.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Drawdown</p>
-                  <p className="text-xl font-bold text-destructive">
+                  <p className="text-lg font-semibold text-destructive">
                     -{calculateDrawdown(marketData.last_price, marketData.high_52w).toFixed(1)}%
                   </p>
                 </div>
               </div>
-            )}
-            {!marketData && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Info className="h-4 w-4" />
-                <span>Fetch market data to receive a strategy recommendation</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+            <Info className="h-4 w-4" />
+            <span>Market data unavailable</span>
+          </div>
+        )}
 
         {recommendation && StatusConfig && (
           <Alert>
