@@ -68,11 +68,11 @@ export default function Dashboard() {
   const currency = settings?.currency || 'ILS';
   const currencySymbol = getCurrencySymbol(currency);
 
-  // 3-bucket pie chart (use cash_value as it still exists in DB alongside new columns)
+  // 3-bucket pie chart with high-contrast colors
   const pieData = latestSnapshot ? [
-    { name: 'S&P', value: Number(latestSnapshot.value_sp), color: 'hsl(var(--primary))' },
-    { name: 'TA-125', value: Number(latestSnapshot.value_ta), color: 'hsl(var(--accent))' },
-    { name: 'Cash', value: Number(latestSnapshot.cash_value), color: 'hsl(var(--muted-foreground))' },
+    { name: 'S&P', value: Number(latestSnapshot.value_sp), color: '#3b82f6' },
+    { name: 'TA-125', value: Number(latestSnapshot.value_ta), color: '#8b5cf6' },
+    { name: 'Cash', value: Number(latestSnapshot.cash_value), color: '#22c55e' },
   ].filter(d => d.value > 0) : [];
 
   // Line chart with 3 buckets
@@ -274,17 +274,41 @@ export default function Dashboard() {
                       innerRadius={60}
                       outerRadius={100}
                       dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) => {
+                        const RADIAN = Math.PI / 180;
+                        const radius = outerRadius * 1.25;
+                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                        return (
+                          <text
+                            x={x}
+                            y={y}
+                            fill="hsl(var(--foreground))"
+                            textAnchor={x > cx ? 'start' : 'end'}
+                            dominantBaseline="central"
+                            className="text-xs font-medium"
+                          >
+                            {`${name} ${(percent * 100).toFixed(0)}%`}
+                          </text>
+                        );
+                      }}
+                      labelLine={{ stroke: 'hsl(var(--foreground))', strokeWidth: 1 }}
                     >
                       {pieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => `${currencySymbol}${value.toLocaleString()}`} />
+                    <Tooltip 
+                      formatter={(value: number) => `${currencySymbol}${value.toLocaleString()}`}
+                      contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                    />
+                    <Legend 
+                      formatter={(value) => <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-center text-muted-foreground py-12">No data yet</p>
+                <p className="text-center text-foreground/70 py-12">No data yet</p>
               )}
             </CardContent>
           </Card>
