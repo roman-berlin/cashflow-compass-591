@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, TrendingUp, Wallet, PiggyBank, Target, DollarSign } from 'lucide-react';
+import { Loader2, TrendingUp, Wallet, PiggyBank, Target, DollarSign, Bell } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { getCurrencySymbol, formatCurrency } from '@/lib/currency';
 import type { Tables } from '@/integrations/supabase/types';
@@ -17,16 +17,18 @@ export default function Dashboard() {
   const [ammoState, setAmmoState] = useState<Tables<'ammo_state'> | null>(null);
   const [settings, setSettings] = useState<Tables<'settings'> | null>(null);
   const [latestContribution, setLatestContribution] = useState<Tables<'contributions'> | null>(null);
+  const [latestNotification, setLatestNotification] = useState<Tables<'notifications'> | null>(null);
 
   useEffect(() => {
     if (user) loadData();
   }, [user]);
 
   const loadData = async () => {
-    const [snapshotsRes, ammoRes, settingsRes] = await Promise.all([
+    const [snapshotsRes, ammoRes, settingsRes, notifRes] = await Promise.all([
       supabase.from('portfolio_snapshots').select('*').eq('user_id', user!.id).order('snapshot_month', { ascending: true }),
       supabase.from('ammo_state').select('*').eq('user_id', user!.id).maybeSingle(),
       supabase.from('settings').select('*').eq('user_id', user!.id).maybeSingle(),
+      supabase.from('notifications').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
 
     if (snapshotsRes.data) {
@@ -46,6 +48,7 @@ export default function Dashboard() {
     }
     if (ammoRes.data) setAmmoState(ammoRes.data);
     if (settingsRes.data) setSettings(settingsRes.data);
+    if (notifRes.data) setLatestNotification(notifRes.data);
     setLoading(false);
   };
 
@@ -171,6 +174,30 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Latest Notification Card */}
+        {latestNotification && (
+          <Card className={!latestNotification.is_read ? 'border-primary/50' : ''}>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                Latest Notification
+                {!latestNotification.is_read && (
+                  <span className="h-2 w-2 rounded-full bg-primary" />
+                )}
+              </CardTitle>
+              <Bell className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <p className="font-medium text-sm">{latestNotification.title}</p>
+              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                {latestNotification.message}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                {new Date(latestNotification.created_at).toLocaleDateString()}
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Last Contribution Card */}
         {latestContribution && (
