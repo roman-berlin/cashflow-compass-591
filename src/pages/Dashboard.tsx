@@ -265,34 +265,35 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               {pieData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
+                <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
                     <Pie
                       data={pieData}
                       cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
+                      cy="45%"
+                      innerRadius={50}
+                      outerRadius={80}
                       dataKey="value"
-                      label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) => {
+                      label={({ cx, cy, midAngle, outerRadius, percent, name, fill }) => {
                         const RADIAN = Math.PI / 180;
-                        const radius = outerRadius * 1.25;
+                        const radius = outerRadius + 20;
                         const x = cx + radius * Math.cos(-midAngle * RADIAN);
                         const y = cy + radius * Math.sin(-midAngle * RADIAN);
                         return (
                           <text
                             x={x}
                             y={y}
-                            fill="hsl(var(--foreground))"
+                            fill={fill}
                             textAnchor={x > cx ? 'start' : 'end'}
                             dominantBaseline="central"
-                            className="text-xs font-medium"
+                            fontSize={12}
+                            fontWeight={500}
                           >
                             {`${name} ${(percent * 100).toFixed(0)}%`}
                           </text>
                         );
                       }}
-                      labelLine={{ stroke: 'hsl(var(--foreground))', strokeWidth: 1 }}
+                      labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
                     >
                       {pieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
@@ -301,9 +302,6 @@ export default function Dashboard() {
                     <Tooltip 
                       formatter={(value: number) => `${currencySymbol}${value.toLocaleString()}`}
                       contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
-                    />
-                    <Legend 
-                      formatter={(value) => <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>}
                     />
                   </PieChart>
                 </ResponsiveContainer>
