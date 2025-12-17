@@ -5,14 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, TrendingUp } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [isSendingReset, setIsSendingReset] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -53,6 +58,34 @@ export default function Auth() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSendingReset(true);
+
+    try {
+      const { error } = await supabase.functions.invoke('admin-forgot-password', {
+        body: { email: forgotPasswordEmail },
+      });
+
+      // Always show success message for privacy (don't reveal if email exists)
+      toast({
+        title: 'Reset email sent',
+        description: 'If an account exists with this email, you will receive a password reset link.',
+      });
+      setShowForgotPassword(false);
+      setForgotPasswordEmail('');
+    } catch (err) {
+      toast({
+        title: 'Reset email sent',
+        description: 'If an account exists with this email, you will receive a password reset link.',
+      });
+      setShowForgotPassword(false);
+      setForgotPasswordEmail('');
+    } finally {
+      setIsSendingReset(false);
     }
   };
 
@@ -124,6 +157,34 @@ export default function Auth() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="forgot-email">Email</Label>
+              <Input
+                id="forgot-email"
+                type="email"
+                placeholder="you@example.com"
+                value={forgotPasswordEmail}
+                onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isSendingReset}>
+              {isSendingReset && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send Reset Link
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
