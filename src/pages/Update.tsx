@@ -39,6 +39,11 @@ export default function Update() {
   const [valueSp, setValueSp] = useState(0);
   const [valueTa, setValueTa] = useState(0);
   const [valueCash, setValueCash] = useState(0);
+  
+  // Cost basis tracking (cumulative investment amounts)
+  const [costBasisSp, setCostBasisSp] = useState(0);
+  const [costBasisTa, setCostBasisTa] = useState(0);
+  const [costBasisCash, setCostBasisCash] = useState(0);
 
   const [marketData, setMarketData] = useState<{ last_price: number; high_52w: number; as_of_date: string } | null>(null);
   const [settings, setSettings] = useState<Tables<'settings'> | null>(null);
@@ -68,6 +73,10 @@ export default function Update() {
       setValueSp(Number(snapshotRes.data.value_sp) || 0);
       setValueTa(Number(snapshotRes.data.value_ta) || 0);
       setValueCash(Number(snapshotRes.data.cash_value) || 0);
+      // Load cost basis from last snapshot
+      setCostBasisSp(Number((snapshotRes.data as any).cost_basis_sp) || 0);
+      setCostBasisTa(Number((snapshotRes.data as any).cost_basis_ta) || 0);
+      setCostBasisCash(Number((snapshotRes.data as any).cost_basis_cash) || 0);
     }
     setLoading(false);
   };
@@ -134,6 +143,11 @@ export default function Update() {
     const newValueCash = valueCash + contributionCash;
     const totalValue = newValueSp + newValueTa + newValueCash;
     const totalContribution = contributionSpy + contributionTa + contributionCash;
+    
+    // Update cost basis (cumulative contributions per asset)
+    const newCostBasisSp = costBasisSp + contributionSpy;
+    const newCostBasisTa = costBasisTa + contributionTa;
+    const newCostBasisCash = costBasisCash + contributionCash;
 
     // Auto-run strategy if market data is available
     let strategyResult: StrategyResult | null = null;
@@ -145,8 +159,7 @@ export default function Update() {
     const drawdownPercent = marketData ? calculateDrawdown(marketData.last_price, marketData.high_52w) : null;
 
     try {
-      // Save portfolio snapshot (3-bucket model)
-      // Note: total_value, cash_percent, stocks_percent are generated columns - don't include them
+      // Save portfolio snapshot (3-bucket model with cost basis)
       const { data: snapshot, error: snapshotError } = await supabase
         .from('portfolio_snapshots')
         .upsert({
@@ -158,6 +171,9 @@ export default function Update() {
           value_ta: newValueTa,
           percent_sp: totalValue > 0 ? (newValueSp / totalValue) * 100 : 0,
           percent_ta: totalValue > 0 ? (newValueTa / totalValue) * 100 : 0,
+          cost_basis_sp: newCostBasisSp,
+          cost_basis_ta: newCostBasisTa,
+          cost_basis_cash: newCostBasisCash,
         }, { onConflict: 'user_id,snapshot_month' })
         .select()
         .single();
