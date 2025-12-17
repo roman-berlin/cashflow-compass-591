@@ -19,7 +19,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, RotateCcw } from 'lucide-react';
+import { Loader2, Save, RotateCcw, User } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 export default function Settings() {
@@ -27,7 +27,9 @@ export default function Settings() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingName, setSavingName] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [profileName, setProfileName] = useState('');
   const [settings, setSettings] = useState<Partial<Tables<'settings'>>>({
     stocks_target_percent: 70,
     cash_target_percent: 30,
@@ -40,7 +42,11 @@ export default function Settings() {
   });
 
   useEffect(() => {
-    if (user) fetchSettings();
+    if (user) {
+      fetchSettings();
+      // Load profile name from user metadata
+      setProfileName(user.user_metadata?.name || '');
+    }
   }, [user]);
 
   const fetchSettings = async () => {
@@ -73,6 +79,29 @@ export default function Settings() {
       toast({ title: 'Settings saved!' });
     }
     setSaving(false);
+  };
+
+  const handleUpdateName = async () => {
+    if (!profileName.trim()) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Name cannot be empty' });
+      return;
+    }
+    if (profileName.length > 100) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Name must be less than 100 characters' });
+      return;
+    }
+
+    setSavingName(true);
+    const { error } = await supabase.auth.updateUser({
+      data: { name: profileName.trim() }
+    });
+
+    if (error) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+    } else {
+      toast({ title: 'Name updated successfully!' });
+    }
+    setSavingName(false);
   };
 
   const handleResetAmmo = async () => {
@@ -114,6 +143,44 @@ export default function Settings() {
           <h1 className="text-2xl font-bold">Settings</h1>
           <p className="text-muted-foreground">Configure your long-term strategy parameters</p>
         </div>
+
+        {/* Profile Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Profile
+            </CardTitle>
+            <CardDescription>Manage your profile information</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={user?.email || ''}
+                disabled
+                className="bg-muted"
+              />
+              <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profileName">Full Name</Label>
+              <Input
+                id="profileName"
+                type="text"
+                value={profileName}
+                onChange={(e) => setProfileName(e.target.value)}
+                placeholder="Enter your full name"
+                maxLength={100}
+              />
+            </div>
+            <Button onClick={handleUpdateName} disabled={savingName} variant="outline">
+              {savingName ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Update Name
+            </Button>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

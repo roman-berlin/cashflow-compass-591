@@ -27,7 +27,14 @@ export const forgotPasswordSchema = z.object({
   email: emailSchema,
 });
 
+export const nameSchema = z
+  .string()
+  .trim()
+  .min(1, 'Full name is required')
+  .max(100, 'Name must be less than 100 characters');
+
 export const setPasswordSchema = z.object({
+  name: nameSchema,
   password: passwordSchema,
   confirmPassword: z.string().min(1, 'Please confirm your password'),
 }).refine((data) => data.password === data.confirmPassword, {

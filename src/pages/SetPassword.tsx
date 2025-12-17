@@ -7,17 +7,18 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, TrendingUp, CheckCircle } from 'lucide-react';
-import { setPasswordSchema, getFirstError } from '@/lib/validation';
+import { setPasswordSchema } from '@/lib/validation';
 
 export default function SetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; password?: string; confirmPassword?: string }>({});
 
   const token = searchParams.get('token');
   const email = searchParams.get('email');
@@ -26,11 +27,12 @@ export default function SetPassword() {
     e.preventDefault();
     setErrors({});
 
-    // Validate passwords
-    const result = setPasswordSchema.safeParse({ password, confirmPassword });
+    // Validate all fields
+    const result = setPasswordSchema.safeParse({ name: fullName, password, confirmPassword });
     if (!result.success) {
-      const fieldErrors: { password?: string; confirmPassword?: string } = {};
+      const fieldErrors: { name?: string; password?: string; confirmPassword?: string } = {};
       result.error.errors.forEach((err) => {
+        if (err.path[0] === 'name') fieldErrors.name = err.message;
         if (err.path[0] === 'password') fieldErrors.password = err.message;
         if (err.path[0] === 'confirmPassword') fieldErrors.confirmPassword = err.message;
       });
@@ -41,7 +43,7 @@ export default function SetPassword() {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('admin-set-password', {
-        body: { token, email, password },
+        body: { token, email, password, name: fullName },
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
@@ -112,6 +114,24 @@ export default function SetPassword() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name *</Label>
+              <Input
+                id="fullName"
+                type="text"
+                value={fullName}
+                onChange={(e) => {
+                  setFullName(e.target.value);
+                  if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
+                }}
+                placeholder="Enter your full name"
+                className={errors.name ? 'border-destructive' : ''}
+                aria-invalid={!!errors.name}
+              />
+              {errors.name && (
+                <p className="text-sm text-destructive">{errors.name}</p>
+              )}
+            </div>
             <div className="space-y-2">
               <Label htmlFor="password">New Password</Label>
               <Input
