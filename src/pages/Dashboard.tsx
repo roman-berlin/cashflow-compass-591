@@ -346,110 +346,59 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Latest Notification Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              Latest Notification
-              {latestNotification && !latestNotification.is_read && (
-                <span className="h-2 w-2 rounded-full bg-primary" />
-              )}
-            </CardTitle>
-            <Bell className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {latestNotification ? (
-              <>
-                <p className="font-medium text-sm">{latestNotification.title}</p>
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                  {latestNotification.message}
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {new Date(latestNotification.created_at).toLocaleDateString()}
-                </p>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground py-2">Notifications appear here when you receive strategy recommendations</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Last Contribution Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Last Contribution</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {latestContribution ? (
-              <>
-                <p className="text-2xl font-bold">
-                  {getCurrencySymbol(latestContribution.currency)}{Number(latestContribution.amount).toLocaleString()}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {contributionTypeLabels[latestContribution.contribution_type] || latestContribution.contribution_type}
-                </p>
-              </>
-            ) : (
-              <div className="py-2">
-                <p className="text-sm text-muted-foreground">No contributions yet</p>
-                <Link to="/update" className="text-xs text-primary hover:underline">Record a contribution →</Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Ammo Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Ammo Status</CardTitle>
-            <CardDescription>Cash tranches ready to deploy during market downturns (each = 1/3 of cash)</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex gap-2">
-              {ammoBadges.map((badge) => (
-                <Badge key={badge.label} variant={badge.used ? 'secondary' : 'default'}>
-                  {badge.label} ({badge.trigger}%): {badge.used ? 'Used' : 'Ready'}
-                </Badge>
-              ))}
-            </div>
-            
-            {/* Smart Ammo Reset Indicator */}
-            {allAmmoUsed && (
-              <div className={`text-sm p-3 rounded-md ${showAmmoResetReady ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                {showAmmoResetReady ? (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4" />
-                    <span>Ammo ready to reset – market recovered and cash at target.</span>
-                  </div>
+        {/* Notification + Market Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* Latest Notification - 2 columns on large screens */}
+          <div className="lg:col-span-2">
+            <Card className="h-full">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  Latest Notification
+                  {latestNotification && !latestNotification.is_read && (
+                    <span className="h-2 w-2 rounded-full bg-primary" />
+                  )}
+                </CardTitle>
+                <Bell className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {latestNotification ? (
+                  <>
+                    <p className="font-medium text-sm">{latestNotification.title}</p>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                      {latestNotification.message}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {new Date(latestNotification.created_at).toLocaleDateString()}
+                    </p>
+                  </>
                 ) : (
-                  <span>Ammo can be reset once the market has recovered and cash is rebuilt to target.</span>
+                  <p className="text-sm text-muted-foreground py-2">Notifications appear here when you receive strategy recommendations</p>
                 )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Market Performance & Drawdown Charts */}
-        <div className="grid grid-cols-1 gap-6">
-          <PerformanceChart 
-            spyData={spyTimeSeries}
-            ta35Data={eisTimeSeries}
-            loading={marketDataLoading}
-            error={marketDataError || undefined}
-          />
+              </CardContent>
+            </Card>
+          </div>
           
-          <DrawdownChart 
-            spyData={spyTimeSeries}
-            ta35Data={eisTimeSeries}
-            triggers={{
-              t1: settings?.tranche_1_trigger || 10,
-              t2: settings?.tranche_2_trigger || 20,
-              t3: settings?.tranche_3_trigger || 30,
-            }}
-            loading={marketDataLoading}
-            error={marketDataError || undefined}
-          />
+          {/* Market Charts - 3 columns on large screens */}
+          <div className="lg:col-span-3 space-y-6">
+            <PerformanceChart 
+              spyData={spyTimeSeries}
+              ta35Data={eisTimeSeries}
+              loading={marketDataLoading}
+              error={marketDataError || undefined}
+            />
+            
+            <DrawdownChart 
+              spyData={spyTimeSeries}
+              ta35Data={eisTimeSeries}
+              triggers={{
+                t1: settings?.tranche_1_trigger || 10,
+                t2: settings?.tranche_2_trigger || 20,
+                t3: settings?.tranche_3_trigger || 30,
+              }}
+              loading={marketDataLoading}
+              error={marketDataError || undefined}
+            />
+          </div>
         </div>
       </div>
     </Layout>

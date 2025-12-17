@@ -10,6 +10,7 @@ interface SetPasswordRequest {
   token: string;
   email: string;
   password: string;
+  name: string;
 }
 
 serve(async (req) => {
@@ -22,7 +23,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { token, email, password }: SetPasswordRequest = await req.json();
+    const { token, email, password, name }: SetPasswordRequest = await req.json();
 
     // Input validation
     if (!token || typeof token !== 'string' || token.length < 10) {
@@ -39,6 +40,12 @@ serve(async (req) => {
     }
     if (!password || typeof password !== 'string' || password.length < 6 || password.length > 72) {
       return new Response(JSON.stringify({ error: "Password must be between 6 and 72 characters" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!name || typeof name !== 'string' || name.trim().length === 0 || name.length > 100) {
+      return new Response(JSON.stringify({ error: "Full name is required (max 100 characters)" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -86,10 +93,10 @@ serve(async (req) => {
       });
     }
 
-    // Update user password
+    // Update user password and name
     const { error: updateError } = await serviceClient.auth.admin.updateUserById(
       user.id,
-      { password, user_metadata: { invited: false, password_set: true } }
+      { password, user_metadata: { name: name.trim(), invited: false, password_set: true } }
     );
 
     if (updateError) {
