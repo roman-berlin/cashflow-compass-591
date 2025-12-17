@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, TrendingUp, Wallet, PiggyBank, Target, DollarSign, Bell, CheckCircle } from 'lucide-react';
+import { Loader2, TrendingUp, Wallet, PiggyBank, Target, DollarSign, Bell, CheckCircle, PlusCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { getCurrencySymbol } from '@/lib/currency';
 import { PerformanceChart } from '@/components/PerformanceChart';
@@ -159,6 +161,9 @@ export default function Dashboard() {
   const spyTimeSeries = marketData?.tickers?.SPY?.time_series || [];
   const eisTimeSeries = marketData?.tickers?.EIS?.time_series || [];
 
+  // Check if this is a first-time user (no snapshots)
+  const isFirstTimeUser = snapshots.length === 0;
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -166,6 +171,41 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">Your portfolio overview</p>
         </div>
+
+        {/* First-time user onboarding banner */}
+        {isFirstTimeUser && (
+          <Card className="border-primary/50 bg-primary/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                Welcome to Portfolio Ammo!
+              </CardTitle>
+              <CardDescription>
+                Get started in 2 simple steps to track your portfolio and get smart rebalancing recommendations.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-background border">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-bold text-sm shrink-0">1</div>
+                  <div>
+                    <p className="font-medium">Configure your strategy</p>
+                    <p className="text-sm text-muted-foreground">Set your target allocation and ammo triggers</p>
+                    <a href="/settings" className="text-sm text-primary hover:underline mt-1 inline-block">Go to Settings →</a>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-background border">
+                  <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-bold text-sm shrink-0">2</div>
+                  <div>
+                    <p className="font-medium">Enter your portfolio values</p>
+                    <p className="text-sm text-muted-foreground">Add your current holdings and contributions</p>
+                    <a href="/update" className="text-sm text-primary hover:underline mt-1 inline-block">Create First Update →</a>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Cards - 3 buckets */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -286,7 +326,15 @@ export default function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-center text-muted-foreground py-12">No allocation data yet. Add your first snapshot to see your portfolio distribution.</p>
+              <div className="text-center py-12 space-y-4">
+                <p className="text-muted-foreground">No allocation data yet</p>
+                <Link to="/update">
+                  <Button variant="outline" size="sm">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Your First Update
+                  </Button>
+                </Link>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -314,7 +362,7 @@ export default function Dashboard() {
                 </p>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground py-2">No notifications yet</p>
+              <p className="text-sm text-muted-foreground py-2">Notifications appear here when you receive strategy recommendations</p>
             )}
           </CardContent>
         </Card>
@@ -336,7 +384,10 @@ export default function Dashboard() {
                 </p>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground py-2">No contributions recorded yet</p>
+              <div className="py-2">
+                <p className="text-sm text-muted-foreground">No contributions yet</p>
+                <Link to="/update" className="text-xs text-primary hover:underline">Record a contribution →</Link>
+              </div>
             )}
           </CardContent>
         </Card>

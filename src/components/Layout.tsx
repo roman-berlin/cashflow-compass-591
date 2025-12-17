@@ -51,14 +51,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Button>
           </div>
         </div>
-        {/* Mobile nav */}
-        <nav className="md:hidden flex items-center justify-around border-t border-border py-2">
+        {/* Mobile nav - improved tap targets */}
+        <nav className="md:hidden flex items-center justify-around border-t border-border py-1">
           {navItems.map((item) => (
-            <Link key={item.href} to={item.href}>
+            <Link key={item.href} to={item.href} className="flex-1">
               <Button
                 variant={location.pathname === item.href ? 'secondary' : 'ghost'}
                 size="sm"
-                className="flex-col h-auto py-2 px-3"
+                className="flex-col h-auto py-3 px-2 w-full min-h-[60px]"
               >
                 <item.icon className="h-5 w-5" />
                 <span className="text-xs mt-1">{item.label}</span>
