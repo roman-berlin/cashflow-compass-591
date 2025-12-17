@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, TrendingUp, CheckCircle } from 'lucide-react';
 import { setPasswordSchema } from '@/lib/validation';
+import { isPasswordBreached } from '@/lib/passwordBreachCheck';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -40,6 +41,18 @@ export default function ResetPassword() {
 
     setIsLoading(true);
     try {
+      // Check for breached password
+      const breachResult = await isPasswordBreached(password);
+      if (breachResult.breached) {
+        toast({
+          variant: 'destructive',
+          title: 'Compromised Password',
+          description: `This password has been found in ${breachResult.count?.toLocaleString() || 'multiple'} data breaches. Please choose a different password.`,
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('admin-reset-password', {
         body: { token, email, password },
       });

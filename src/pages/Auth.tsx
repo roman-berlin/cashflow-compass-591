@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { loginSchema, signupSchema, forgotPasswordSchema, getFirstError } from '@/lib/validation';
+import { isPasswordBreached } from '@/lib/passwordBreachCheck';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -51,6 +52,20 @@ export default function Auth() {
     setIsLoading(true);
 
     try {
+      // Check for breached password on signup
+      if (isSignUp) {
+        const breachResult = await isPasswordBreached(password);
+        if (breachResult.breached) {
+          toast({
+            variant: 'destructive',
+            title: 'Compromised Password',
+            description: `This password has been found in ${breachResult.count?.toLocaleString() || 'multiple'} data breaches. Please choose a different password.`,
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const { error } = isSignUp 
         ? await signUp(email, password)
         : await signIn(email, password);
