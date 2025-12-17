@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, TrendingUp } from 'lucide-react';
+import { Loader2, TrendingUp, CheckCircle } from 'lucide-react';
+import { setPasswordSchema, getFirstError } from '@/lib/validation';
 
 export default function SetPassword() {
   const [searchParams] = useSearchParams();
@@ -15,18 +16,25 @@ export default function SetPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [errors, setErrors] = useState<{ password?: string; confirmPassword?: string }>({});
 
   const token = searchParams.get('token');
   const email = searchParams.get('email');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Passwords do not match' });
-      return;
-    }
-    if (password.length < 6) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Password must be at least 6 characters' });
+    setErrors({});
+
+    // Validate passwords
+    const result = setPasswordSchema.safeParse({ password, confirmPassword });
+    if (!result.success) {
+      const fieldErrors: { password?: string; confirmPassword?: string } = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0] === 'password') fieldErrors.password = err.message;
+        if (err.path[0] === 'confirmPassword') fieldErrors.confirmPassword = err.message;
+      });
+      setErrors(fieldErrors);
       return;
     }
 
@@ -37,8 +45,12 @@ export default function SetPassword() {
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
+      
+      setIsSuccess(true);
       toast({ title: 'Success', description: data.message });
-      navigate('/auth');
+      
+      // Redirect after showing success
+      setTimeout(() => navigate('/auth'), 2000);
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to set password' });
     } finally {
@@ -54,6 +66,34 @@ export default function SetPassword() {
             <CardTitle>Invalid Link</CardTitle>
             <CardDescription>This password setup link is invalid or has expired.</CardDescription>
           </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate('/auth')} className="w-full">
+              Go to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <CheckCircle className="h-16 w-16 text-green-500" />
+            </div>
+            <CardTitle>Password Set Successfully!</CardTitle>
+            <CardDescription>
+              Your password has been set. Redirecting you to the login page...
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate('/auth')} className="w-full">
+              Go to Login
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );
@@ -74,14 +114,42 @@ export default function SetPassword() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">New Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                }}
+                className={errors.password ? 'border-destructive' : ''}
+                aria-invalid={!!errors.password}
+              />
+              {errors.password && (
+                <p className="text-sm text-destructive">{errors.password}</p>
+              )}
+              <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm">Confirm Password</Label>
-              <Input id="confirm" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+              <Input
+                id="confirm"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+                }}
+                className={errors.confirmPassword ? 'border-destructive' : ''}
+                aria-invalid={!!errors.confirmPassword}
+              />
+              {errors.confirmPassword && (
+                <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+              )}
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Set Password
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Set Password
             </Button>
           </form>
         </CardContent>

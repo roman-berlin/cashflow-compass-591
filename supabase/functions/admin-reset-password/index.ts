@@ -24,6 +24,26 @@ serve(async (req) => {
 
     const { token, email, password }: ResetPasswordRequest = await req.json();
 
+    // Input validation
+    if (!token || typeof token !== 'string' || token.length < 10) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!email || typeof email !== 'string' || !email.includes('@') || email.length > 255) {
+      return new Response(JSON.stringify({ error: "Invalid email" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!password || typeof password !== 'string' || password.length < 6 || password.length > 72) {
+      return new Response(JSON.stringify({ error: "Password must be between 6 and 72 characters" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Rate limit check
     const rateLimitResult = await checkRateLimit(serviceClient, email, "reset_password", 5, 15);
     if (!rateLimitResult.allowed) {
