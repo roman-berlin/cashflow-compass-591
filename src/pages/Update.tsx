@@ -371,22 +371,22 @@ export default function Update() {
             <Loader2 className="h-4 w-4 animate-spin" />
             <span>Loading market data...</span>
           </div>
-        ) : marketData ? (
+        ) : marketData && marketData.last_price != null && marketData.high_52w != null ? (
           <Card>
             <CardContent className="pt-6">
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-sm text-muted-foreground">SPY Price</p>
-                  <p className="text-lg font-semibold">${marketData.last_price.toFixed(2)}</p>
+                  <p className="text-lg font-semibold">${Number(marketData.last_price).toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">52-Week High</p>
-                  <p className="text-lg font-semibold">${marketData.high_52w.toFixed(2)}</p>
+                  <p className="text-lg font-semibold">${Number(marketData.high_52w).toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Drawdown</p>
                   <p className="text-lg font-semibold text-destructive">
-                    -{calculateDrawdown(marketData.last_price, marketData.high_52w).toFixed(1)}%
+                    -{calculateDrawdown(Number(marketData.last_price), Number(marketData.high_52w)).toFixed(1)}%
                   </p>
                 </div>
               </div>
