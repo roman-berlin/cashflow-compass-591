@@ -11,8 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserPlus, Shield, Crown, User, RefreshCw } from 'lucide-react';
+import { Loader2, UserPlus, Shield, Crown, User, RefreshCw, Trash2 } from 'lucide-react';
 import { inviteUserSchema, getFirstError } from '@/lib/validation';
 
 interface AppUser {
@@ -116,6 +117,20 @@ export default function Admin() {
       fetchUsers();
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to update role' });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, email: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+        body: { userId },
+      });
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+      toast({ title: 'Success', description: `User ${email} deleted successfully` });
+      fetchUsers();
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to delete user' });
     }
   };
 
@@ -237,15 +252,43 @@ export default function Admin() {
                         </TableCell>
                         {isOwner && (
                           <TableCell>
-                            {u.role !== 'owner' && u.id !== user?.id && (
-                              <Select value={u.role} onValueChange={(v: 'user' | 'admin') => handleRoleChange(u.id, v)}>
-                                <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="user">User</SelectItem>
-                                  <SelectItem value="admin">Admin</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {u.role !== 'owner' && u.id !== user?.id && (
+                                <>
+                                  <Select value={u.role} onValueChange={(v: 'user' | 'admin') => handleRoleChange(u.id, v)}>
+                                    <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="user">User</SelectItem>
+                                      <SelectItem value="admin">Admin</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          Are you sure you want to delete <strong>{u.email}</strong>? This will permanently remove the user and all their data. This action cannot be undone.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                          onClick={() => handleDeleteUser(u.id, u.email)}
+                                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                          Delete
+                                        </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </>
+                              )}
+                            </div>
                           </TableCell>
                         )}
                       </TableRow>
