@@ -245,18 +245,18 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={320}>
                 <PieChart>
                   <Pie
                     data={pieData}
                     cx="50%"
-                    cy="45%"
-                    innerRadius={50}
-                    outerRadius={80}
+                    cy="50%"
+                    innerRadius={80}
+                    outerRadius={130}
                     dataKey="value"
                     label={({ cx, cy, midAngle, outerRadius, percent, name, fill }) => {
                       const RADIAN = Math.PI / 180;
-                      const radius = outerRadius + 20;
+                      const radius = outerRadius + 25;
                       const x = cx + radius * Math.cos(-midAngle * RADIAN);
                       const y = cy + radius * Math.sin(-midAngle * RADIAN);
                       return (
@@ -266,7 +266,7 @@ export default function Dashboard() {
                           fill={fill}
                           textAnchor={x > cx ? 'start' : 'end'}
                           dominantBaseline="central"
-                          fontSize={12}
+                          fontSize={13}
                           fontWeight={500}
                         >
                           {`${name} ${(percent * 100).toFixed(0)}%`}
