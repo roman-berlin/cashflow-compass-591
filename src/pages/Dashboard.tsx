@@ -5,9 +5,31 @@ import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, TrendingUp, Wallet, PiggyBank, Target, DollarSign, Bell, CheckCircle } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { getCurrencySymbol } from '@/lib/currency';
+import { PerformanceChart } from '@/components/PerformanceChart';
+import { DrawdownChart } from '@/components/DrawdownChart';
 import type { Tables } from '@/integrations/supabase/types';
+
+interface TimeSeriesPoint {
+  date: string;
+  close: number;
+  return_pct: number;
+  drawdown_pct: number;
+}
+
+interface TickerData {
+  last_price: number;
+  high_52w: number;
+  current_drawdown: number;
+  time_series: TimeSeriesPoint[];
+  error?: string;
+}
+
+interface MarketDataResponse {
+  tickers: Record<string, TickerData>;
+  as_of_date: string;
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -19,9 +41,17 @@ export default function Dashboard() {
   const [latestContribution, setLatestContribution] = useState<Tables<'contributions'> | null>(null);
   const [latestNotification, setLatestNotification] = useState<Tables<'notifications'> | null>(null);
   const [marketState, setMarketState] = useState<Tables<'market_state'> | null>(null);
+  
+  // Market time series data
+  const [marketData, setMarketData] = useState<MarketDataResponse | null>(null);
+  const [marketDataLoading, setMarketDataLoading] = useState(true);
+  const [marketDataError, setMarketDataError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) loadData();
+    if (user) {
+      loadData();
+      loadMarketData();
+    }
   }, [user]);
 
   const loadData = async () => {
@@ -55,6 +85,32 @@ export default function Dashboard() {
     setLoading(false);
   };
 
+  const loadMarketData = async () => {
+    setMarketDataLoading(true);
+    setMarketDataError(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('get-market-data', {
+        body: { tickers: ['SPY', 'TA35'] }
+      });
+      
+      if (error) {
+        console.error('Market data error:', error);
+        setMarketDataError('Failed to load market data');
+      } else if (data?.error) {
+        console.error('Market data API error:', data.error);
+        setMarketDataError(data.error);
+      } else {
+        setMarketData(data);
+      }
+    } catch (err) {
+      console.error('Market data fetch error:', err);
+      setMarketDataError('Failed to fetch market data');
+    } finally {
+      setMarketDataLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -74,15 +130,6 @@ export default function Dashboard() {
     { name: 'TA-125', value: Number(latestSnapshot.value_ta), color: '#8b5cf6' },
     { name: 'Cash', value: Number(latestSnapshot.cash_value), color: '#22c55e' },
   ].filter(d => d.value > 0) : [];
-
-  // Line chart with 3 buckets
-  const lineData = snapshots.map((s) => ({
-    month: new Date(s.snapshot_month).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
-    total: Number(s.total_value),
-    sp: Number(s.value_sp),
-    ta: Number(s.value_ta),
-    cash: Number(s.cash_value),
-  }));
 
   const ammoBadges = [
     { label: 'T1', trigger: settings?.tranche_1_trigger || 10, used: ammoState?.tranche_1_used },
@@ -106,6 +153,10 @@ export default function Dashboard() {
     bonus: 'Bonus / one-time',
     adjustment: 'Manual adjustment',
   };
+
+  // Extract time series data for charts
+  const spyTimeSeries = marketData?.tickers?.SPY?.time_series || [];
+  const ta35TimeSeries = marketData?.tickers?.TA35?.time_series || [];
 
   return (
     <Layout>
@@ -257,84 +308,81 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Allocation</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {pieData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="45%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      dataKey="value"
-                      label={({ cx, cy, midAngle, outerRadius, percent, name, fill }) => {
-                        const RADIAN = Math.PI / 180;
-                        const radius = outerRadius + 20;
-                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                        return (
-                          <text
-                            x={x}
-                            y={y}
-                            fill={fill}
-                            textAnchor={x > cx ? 'start' : 'end'}
-                            dominantBaseline="central"
-                            fontSize={12}
-                            fontWeight={500}
-                          >
-                            {`${name} ${(percent * 100).toFixed(0)}%`}
-                          </text>
-                        );
-                      }}
-                      labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => `${currencySymbol}${value.toLocaleString()}`}
-                      contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-center text-foreground/70 py-12">No data yet</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Portfolio History</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {lineData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={lineData}>
-                    <XAxis dataKey="month" />
-                    <YAxis tickFormatter={(v) => `${currencySymbol}${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(value: number) => `${currencySymbol}${value.toLocaleString()}`} />
-                    <Legend />
-                    <Line type="monotone" dataKey="total" name="Total" stroke="hsl(var(--primary))" strokeWidth={2} />
-                    <Line type="monotone" dataKey="sp" name="S&P" stroke="hsl(var(--chart-1))" strokeWidth={1} />
-                    <Line type="monotone" dataKey="ta" name="TA-125" stroke="hsl(var(--chart-2))" strokeWidth={1} />
-                    <Line type="monotone" dataKey="cash" name="Cash" stroke="hsl(var(--muted-foreground))" strokeWidth={1} />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-center text-muted-foreground py-12">No data yet</p>
-              )}
-            </CardContent>
-          </Card>
+        {/* Market Performance & Drawdown Charts */}
+        <div className="grid grid-cols-1 gap-6">
+          <PerformanceChart 
+            spyData={spyTimeSeries}
+            ta35Data={ta35TimeSeries}
+            loading={marketDataLoading}
+            error={marketDataError || undefined}
+          />
+          
+          <DrawdownChart 
+            spyData={spyTimeSeries}
+            ta35Data={ta35TimeSeries}
+            triggers={{
+              t1: settings?.tranche_1_trigger || 10,
+              t2: settings?.tranche_2_trigger || 20,
+              t3: settings?.tranche_3_trigger || 30,
+            }}
+            loading={marketDataLoading}
+            error={marketDataError || undefined}
+          />
         </div>
+
+        {/* Allocation Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Portfolio Allocation</CardTitle>
+            <CardDescription>Current asset distribution</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="45%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ cx, cy, midAngle, outerRadius, percent, name, fill }) => {
+                      const RADIAN = Math.PI / 180;
+                      const radius = outerRadius + 20;
+                      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                      return (
+                        <text
+                          x={x}
+                          y={y}
+                          fill={fill}
+                          textAnchor={x > cx ? 'start' : 'end'}
+                          dominantBaseline="central"
+                          fontSize={12}
+                          fontWeight={500}
+                        >
+                          {`${name} ${(percent * 100).toFixed(0)}%`}
+                        </text>
+                      );
+                    }}
+                    labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number) => `${currencySymbol}${value.toLocaleString()}`}
+                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-center text-foreground/70 py-12">No data yet</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
