@@ -86,9 +86,15 @@ export default function Update() {
     try {
       const { data, error } = await supabase.functions.invoke('get-market-data');
       if (error) throw error;
-      setMarketData(data);
+      // Extract SPY data from the response structure: { tickers: { SPY: {...} }, as_of_date }
+      if (data?.tickers?.SPY) {
+        setMarketData({
+          last_price: data.tickers.SPY.last_price,
+          high_52w: data.tickers.SPY.high_52w,
+          as_of_date: data.as_of_date,
+        });
+      }
     } catch (err: any) {
-      // Silent failure - market data unavailable
       console.error('Failed to fetch market data:', err.message);
     } finally {
       setMarketDataLoading(false);
