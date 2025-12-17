@@ -306,8 +306,8 @@ export default function Dashboard() {
                           fill={fill}
                           textAnchor={x > cx ? 'start' : 'end'}
                           dominantBaseline="central"
-                          fontSize={13}
-                          fontWeight={500}
+                          fontSize={16}
+                          fontWeight={600}
                         >
                           {`${name} ${(percent * 100).toFixed(0)}%`}
                         </text>
