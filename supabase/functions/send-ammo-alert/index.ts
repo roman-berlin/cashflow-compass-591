@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
@@ -8,12 +9,24 @@ const corsHeaders = {
 };
 
 interface AmmoAlertRequest {
-  email: string;
   recommendation_type: string;
   recommendation_text: string;
   drawdown_percent: number;
   transfer_amount: number | null;
   market_status: string;
+}
+
+// HTML entity encoding to prevent XSS
+function escapeHtml(text: string): string {
+  const htmlEntities: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;'
+  };
+  return text.replace(/[&<>"'\/]/g, char => htmlEntities[char]);
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -22,8 +35,39 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Authentication: Get user from JWT token
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Use the authenticated user's email - don't accept email from request body
+    const email = user.email;
+    if (!email) {
+      return new Response(JSON.stringify({ error: "User has no email" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { 
-      email, 
       recommendation_type, 
       recommendation_text, 
       drawdown_percent, 
@@ -31,7 +75,38 @@ const handler = async (req: Request): Promise<Response> => {
       market_status 
     }: AmmoAlertRequest = await req.json();
 
-    console.log("Sending ammo alert to:", email, "Type:", recommendation_type);
+    // Input validation
+    if (!recommendation_type || typeof recommendation_type !== 'string' || recommendation_type.length > 50) {
+      return new Response(JSON.stringify({ error: "Invalid recommendation_type" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!recommendation_text || typeof recommendation_text !== 'string' || recommendation_text.length > 1000) {
+      return new Response(JSON.stringify({ error: "Invalid recommendation_text" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!market_status || typeof market_status !== 'string' || market_status.length > 20) {
+      return new Response(JSON.stringify({ error: "Invalid market_status" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (typeof drawdown_percent !== 'number' || isNaN(drawdown_percent)) {
+      return new Response(JSON.stringify({ error: "Invalid drawdown_percent" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("Sending ammo alert to:", email, "Type:", recommendation_type, "User:", user.id);
+
+    // Sanitize all user-controlled content for HTML
+    const safeRecommendationType = escapeHtml(recommendation_type.replace(/_/g, " "));
+    const safeRecommendationText = escapeHtml(recommendation_text);
+    const safeMarketStatus = escapeHtml(market_status);
 
     const statusColors: Record<string, string> = {
       normal: "#22c55e",
@@ -55,10 +130,10 @@ const handler = async (req: Request): Promise<Response> => {
     
     <div style="background-color: ${statusColor}20; border-left: 4px solid ${statusColor}; padding: 16px; border-radius: 0 8px 8px 0; margin: 24px 0;">
       <p style="margin: 0; font-size: 18px; font-weight: 600; color: ${statusColor};">
-        ${recommendation_type.replace(/_/g, " ")}
+        ${safeRecommendationType}
       </p>
       <p style="margin: 8px 0 0; color: #cbd5e1;">
-        Market Status: <strong style="color: ${statusColor};">${market_status.toUpperCase()}</strong>
+        Market Status: <strong style="color: ${statusColor};">${safeMarketStatus.toUpperCase()}</strong>
       </p>
     </div>
 
@@ -76,7 +151,7 @@ const handler = async (req: Request): Promise<Response> => {
     </div>
 
     <p style="color: #e2e8f0; line-height: 1.6; margin: 24px 0;">
-      ${recommendation_text}
+      ${safeRecommendationText}
     </p>
 
     <hr style="border: none; border-top: 1px solid #334155; margin: 24px 0;">
@@ -97,7 +172,7 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         from: "Portfolio Ammo <onboarding@resend.dev>",
         to: [email],
-        subject: `AMMO ALERT: ${recommendation_type.replace(/_/g, " ")}`,
+        subject: `AMMO ALERT: ${safeRecommendationType}`,
         html: htmlContent,
       }),
     });
