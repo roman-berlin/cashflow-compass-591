@@ -141,7 +141,7 @@ serve(async (req) => {
     });
 
     // Send invite email using fetch
-    const appUrl = req.headers.get("origin") || "https://cashflow-compass-591.lovable.app";
+    const appUrl = req.headers.get("origin") || "https://flowbitz.app";
     const inviteLink = `${appUrl}/set-password?token=${token}&email=${encodeURIComponent(email)}`;
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
@@ -151,7 +151,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Portfolio Ammo <onboarding@resend.dev>",
+        from: "Portfolio Ammo <noreply@flowbitz.app>",
         to: [email],
         subject: "You've been invited to Portfolio Ammo",
         html: `
