@@ -45,10 +45,17 @@ export default function Update() {
   const [costBasisTa, setCostBasisTa] = useState(0);
   const [costBasisCash, setCostBasisCash] = useState(0);
 
-  const [marketData, setMarketData] = useState<{ last_price: number; high_52w: number; as_of_date: string } | null>(null);
+  const [marketData, setMarketData] = useState<{ 
+    SPY: { last_price: number; high_52w: number; current_drawdown: number } | null;
+    EIS: { last_price: number; high_52w: number; current_drawdown: number } | null;
+    as_of_date: string;
+  } | null>(null);
   const [settings, setSettings] = useState<Tables<'settings'> | null>(null);
   const [ammoState, setAmmoState] = useState<Tables<'ammo_state'> | null>(null);
   const [recommendation, setRecommendation] = useState<StrategyResult | null>(null);
+  
+  // Track if user wants to edit current portfolio values
+  const [editingValues, setEditingValues] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -86,14 +93,12 @@ export default function Update() {
     try {
       const { data, error } = await supabase.functions.invoke('get-market-data');
       if (error) throw error;
-      // Extract SPY data from the response structure: { tickers: { SPY: {...} }, as_of_date }
-      if (data?.tickers?.SPY) {
-        setMarketData({
-          last_price: data.tickers.SPY.last_price,
-          high_52w: data.tickers.SPY.high_52w,
-          as_of_date: data.as_of_date,
-        });
-      }
+      // Extract SPY and EIS data from the response structure
+      setMarketData({
+        SPY: data?.tickers?.SPY || null,
+        EIS: data?.tickers?.EIS || null,
+        as_of_date: data?.as_of_date || '',
+      });
     } catch (err: any) {
       console.error('Failed to fetch market data:', err.message);
     } finally {
@@ -102,7 +107,7 @@ export default function Update() {
   };
 
   const runStrategyEngine = () => {
-    if (!settings || !marketData) return null;
+    if (!settings || !marketData?.SPY) return null;
 
     // Calculate new portfolio values after contributions
     const newValueSp = valueSp + contributionSpy;
@@ -120,10 +125,10 @@ export default function Update() {
       percentTa: totalValue > 0 ? (newValueTa / totalValue) * 100 : 0,
     };
 
-    const drawdownPercent = calculateDrawdown(marketData.last_price, marketData.high_52w);
+    const drawdownPercent = calculateDrawdown(marketData.SPY.last_price, marketData.SPY.high_52w);
     const market = {
-      lastPrice: marketData.last_price,
-      high52w: marketData.high_52w,
+      lastPrice: marketData.SPY.last_price,
+      high52w: marketData.SPY.high_52w,
       drawdownPercent,
     };
 
@@ -157,12 +162,12 @@ export default function Update() {
 
     // Auto-run strategy if market data is available
     let strategyResult: StrategyResult | null = null;
-    if (marketData && settings) {
+    if (marketData?.SPY && settings) {
       strategyResult = runStrategyEngine();
       setRecommendation(strategyResult);
     }
 
-    const drawdownPercent = marketData ? calculateDrawdown(marketData.last_price, marketData.high_52w) : null;
+    const drawdownPercent = marketData?.SPY ? calculateDrawdown(marketData.SPY.last_price, marketData.SPY.high_52w) : null;
 
     try {
       // Save portfolio snapshot (3-bucket model with cost basis)
@@ -200,13 +205,13 @@ export default function Update() {
       }
 
       // Only save market state and recommendation if market data is available
-      if (marketData && strategyResult) {
+      if (marketData?.SPY && strategyResult) {
         // Save market state
         await supabase.from('market_state').insert({
           user_id: user!.id,
           ticker: 'SPY',
-          last_price: marketData.last_price,
-          high_52w: marketData.high_52w,
+          last_price: marketData.SPY.last_price,
+          high_52w: marketData.SPY.high_52w,
           as_of_date: marketData.as_of_date,
           drawdown_percent: drawdownPercent,
         });
@@ -260,10 +265,12 @@ export default function Update() {
       } else {
         toast({ 
           title: 'Contributions saved', 
-          description: marketData ? undefined : 'Market data unavailable – recommendation not generated'
+          description: marketData?.SPY ? undefined : 'Market data unavailable – recommendation not generated'
         });
       }
 
+      // Reset inputs
+      setEditingValues(false);
       // Reset contribution inputs
       setContributionSpy(0);
       setContributionTa(0);
@@ -310,11 +317,68 @@ export default function Update() {
           <p className="text-muted-foreground">Record your contributions and get a recommendation</p>
         </div>
 
+        {/* Current Portfolio Values */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Current Portfolio Values</CardTitle>
+                <CardDescription>Update your current holdings</CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setEditingValues(!editingValues)}
+              >
+                {editingValues ? 'Cancel' : 'Edit Values'}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>SPY ({currencySymbol})</Label>
+                <Input
+                  type="number"
+                  value={valueSp || ''}
+                  onChange={(e) => setValueSp(parseFloat(e.target.value) || 0)}
+                  disabled={!editingValues}
+                  className={!editingValues ? 'bg-muted' : ''}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>TA-125 ({currencySymbol})</Label>
+                <Input
+                  type="number"
+                  value={valueTa || ''}
+                  onChange={(e) => setValueTa(parseFloat(e.target.value) || 0)}
+                  disabled={!editingValues}
+                  className={!editingValues ? 'bg-muted' : ''}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Cash / MMF ({currencySymbol})</Label>
+                <Input
+                  type="number"
+                  value={valueCash || ''}
+                  onChange={(e) => setValueCash(parseFloat(e.target.value) || 0)}
+                  disabled={!editingValues}
+                  className={!editingValues ? 'bg-muted' : ''}
+                />
+              </div>
+            </div>
+            <div className="text-right pt-2 border-t">
+              <p className="text-sm text-muted-foreground">Total Portfolio Value</p>
+              <p className="text-xl font-bold">{currencySymbol}{(valueSp + valueTa + valueCash).toLocaleString()}</p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Per-Asset Contributions */}
         <Card>
           <CardHeader>
-            <CardTitle>Contributions</CardTitle>
-            <CardDescription>Enter how much you're adding to each asset</CardDescription>
+            <CardTitle>New Contributions</CardTitle>
+            <CardDescription>Enter how much you're adding this month</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
@@ -371,31 +435,63 @@ export default function Update() {
           </CardContent>
         </Card>
 
-        {/* Market Status - subtle display */}
+        {/* Market Status */}
         {marketDataLoading ? (
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-4">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span>Loading market data...</span>
           </div>
-        ) : marketData && marketData.last_price != null && marketData.high_52w != null ? (
+        ) : marketData?.SPY || marketData?.EIS ? (
           <Card>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-3 gap-4 text-center">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Market Data</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* SPY Data */}
+              {marketData.SPY && (
                 <div>
-                  <p className="text-sm text-muted-foreground">SPY Price</p>
-                  <p className="text-lg font-semibold">${Number(marketData.last_price).toFixed(2)}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">SPY (S&P 500)</p>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Price</p>
+                      <p className="text-lg font-semibold">${Number(marketData.SPY.last_price).toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">52W High</p>
+                      <p className="text-lg font-semibold">${Number(marketData.SPY.high_52w).toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Drawdown</p>
+                      <p className="text-lg font-semibold text-destructive">
+                        -{Number(marketData.SPY.current_drawdown).toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">52-Week High</p>
-                  <p className="text-lg font-semibold">${Number(marketData.high_52w).toFixed(2)}</p>
+              )}
+              
+              {/* EIS/TA-125 Data */}
+              {marketData.EIS && (
+                <div className="pt-3 border-t">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">EIS (Israel ETF / TA-125 proxy)</p>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Price</p>
+                      <p className="text-lg font-semibold">${Number(marketData.EIS.last_price).toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">52W High</p>
+                      <p className="text-lg font-semibold">${Number(marketData.EIS.high_52w).toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Drawdown</p>
+                      <p className="text-lg font-semibold text-destructive">
+                        -{Number(marketData.EIS.current_drawdown).toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Drawdown</p>
-                  <p className="text-lg font-semibold text-destructive">
-                    -{calculateDrawdown(Number(marketData.last_price), Number(marketData.high_52w)).toFixed(1)}%
-                  </p>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         ) : (

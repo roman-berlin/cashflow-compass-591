@@ -48,12 +48,12 @@ export function PortfolioProfitChart({ snapshots, currency = 'NIS', loading }: P
     );
   }
 
-  // Filter snapshots that have cost basis data
-  const snapshotsWithCostBasis = snapshots.filter(s => 
+  // Check if we have cost basis data for profit tracking
+  const hasCostBasis = snapshots.some(s => 
     s.cost_basis_sp > 0 || s.cost_basis_ta > 0 || s.cost_basis_cash > 0
   );
 
-  if (snapshotsWithCostBasis.length === 0) {
+  if (snapshots.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -62,13 +62,16 @@ export function PortfolioProfitChart({ snapshots, currency = 'NIS', loading }: P
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[300px]">
           <p className="text-muted-foreground text-center">
-            No cost basis data yet.<br />
-            <span className="text-sm">Add your initial investment amounts to track profit.</span>
+            No portfolio data yet.<br />
+            <span className="text-sm">Create your first update to start tracking.</span>
           </p>
         </CardContent>
       </Card>
     );
   }
+  
+  // Use all snapshots - show value growth even without cost basis
+  const snapshotsWithCostBasis = snapshots;
 
   // Calculate profit for each snapshot
   const chartData = snapshotsWithCostBasis.map(snapshot => {
