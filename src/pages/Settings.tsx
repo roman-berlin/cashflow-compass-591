@@ -19,7 +19,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, RotateCcw, User } from 'lucide-react';
+import { Loader2, Save, RotateCcw, User, Mail } from 'lucide-react';
 import type { Tables } from '@/integrations/supabase/types';
 
 export default function Settings() {
@@ -28,6 +28,7 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingName, setSavingName] = useState(false);
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [profileName, setProfileName] = useState('');
   const [settings, setSettings] = useState<Partial<Tables<'settings'>>>({
@@ -122,6 +123,31 @@ export default function Settings() {
     setConfirmReset(false);
   };
 
+  const handleSendTestEmail = async () => {
+    setSendingTestEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-ammo-alert', {
+        body: {
+          recommendation_type: 'test_email',
+          recommendation_text: 'This is a test email to verify your email notification setup is working correctly. If you received this, your domain verification with Resend is complete!',
+          drawdown_percent: 5.5,
+          transfer_amount: 1000,
+          market_status: 'normal',
+        },
+      });
+
+      if (error) {
+        toast({ variant: 'destructive', title: 'Error', description: error.message });
+      } else {
+        toast({ title: 'Test email sent!', description: `Check your inbox at ${user?.email}` });
+      }
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to send test email' });
+    } finally {
+      setSendingTestEmail(false);
+    }
+  };
+
   const updateField = (field: string, value: number | string) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
   };
@@ -178,6 +204,26 @@ export default function Settings() {
             <Button onClick={handleUpdateName} disabled={savingName} variant="outline">
               {savingName ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Update Name
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Email Notifications Test */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Email Notifications
+            </CardTitle>
+            <CardDescription>Test your email notification setup</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Send a test email to verify your notification setup is working correctly.
+            </p>
+            <Button onClick={handleSendTestEmail} disabled={sendingTestEmail} variant="outline">
+              {sendingTestEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+              Send Test Email
             </Button>
           </CardContent>
         </Card>
