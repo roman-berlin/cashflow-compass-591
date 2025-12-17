@@ -66,6 +66,26 @@ serve(async (req) => {
 
     const { email, name, role = "user" }: InviteRequest = await req.json();
 
+    // Input validation
+    if (!email || typeof email !== 'string' || !email.includes('@') || email.length > 255) {
+      return new Response(JSON.stringify({ error: "Invalid email address" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (name && (typeof name !== 'string' || name.length > 100)) {
+      return new Response(JSON.stringify({ error: "Name must be less than 100 characters" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (role !== 'user' && role !== 'admin') {
+      return new Response(JSON.stringify({ error: "Invalid role" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Only owner can create admins
     if (role === "admin" && requestingRole?.role !== "owner") {
       return new Response(JSON.stringify({ error: "Only owner can create admin users" }), {

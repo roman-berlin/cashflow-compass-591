@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { loginSchema, signupSchema, forgotPasswordSchema, getFirstError } from '@/lib/validation';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -18,6 +19,7 @@ export default function Auth() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -30,6 +32,22 @@ export default function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+
+    // Validate input
+    const schema = isSignUp ? signupSchema : loginSchema;
+    const result = schema.safeParse({ email, password });
+    
+    if (!result.success) {
+      const fieldErrors: { email?: string; password?: string } = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0] === 'email') fieldErrors.email = err.message;
+        if (err.path[0] === 'password') fieldErrors.password = err.message;
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -49,6 +67,7 @@ export default function Auth() {
           description: 'You can now sign in with your credentials.',
         });
         setIsSignUp(false);
+        setPassword('');
       }
     } catch (err) {
       toast({
@@ -63,10 +82,22 @@ export default function Auth() {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email
+    const result = forgotPasswordSchema.safeParse({ email: forgotPasswordEmail });
+    if (!result.success) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid email',
+        description: getFirstError(result.error),
+      });
+      return;
+    }
+
     setIsSendingReset(true);
 
     try {
-      const { error } = await supabase.functions.invoke('admin-forgot-password', {
+      await supabase.functions.invoke('admin-forgot-password', {
         body: { email: forgotPasswordEmail },
       });
 
@@ -111,9 +142,17 @@ export default function Auth() {
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+                }}
+                className={errors.email ? 'border-destructive' : ''}
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? 'email-error' : undefined}
               />
+              {errors.email && (
+                <p id="email-error" className="text-sm text-destructive">{errors.email}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
@@ -122,10 +161,20 @@ export default function Auth() {
                 type="password"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                }}
+                className={errors.password ? 'border-destructive' : ''}
+                aria-invalid={!!errors.password}
+                aria-describedby={errors.password ? 'password-error' : undefined}
               />
+              {errors.password && (
+                <p id="password-error" className="text-sm text-destructive">{errors.password}</p>
+              )}
+              {isSignUp && (
+                <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
+              )}
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -137,7 +186,10 @@ export default function Auth() {
               {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
               <button
                 type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setErrors({});
+                }}
                 className="text-primary underline hover:no-underline"
               >
                 {isSignUp ? 'Sign in' : 'Sign up'}
