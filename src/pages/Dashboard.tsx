@@ -178,6 +178,7 @@ export default function Dashboard() {
               <p className="text-2xl font-bold">
                 {currencySymbol}{latestSnapshot ? Number(latestSnapshot.total_value).toLocaleString() : '0'}
               </p>
+              <p className="text-xs text-muted-foreground">100%</p>
             </CardContent>
           </Card>
           <Card>
@@ -236,47 +237,109 @@ export default function Dashboard() {
           </Card>
         </div>
 
+        {/* Allocation Chart - moved up for visibility */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Portfolio Allocation</CardTitle>
+            <CardDescription>Current asset distribution</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="45%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    dataKey="value"
+                    label={({ cx, cy, midAngle, outerRadius, percent, name, fill }) => {
+                      const RADIAN = Math.PI / 180;
+                      const radius = outerRadius + 20;
+                      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                      return (
+                        <text
+                          x={x}
+                          y={y}
+                          fill={fill}
+                          textAnchor={x > cx ? 'start' : 'end'}
+                          dominantBaseline="central"
+                          fontSize={12}
+                          fontWeight={500}
+                        >
+                          {`${name} ${(percent * 100).toFixed(0)}%`}
+                        </text>
+                      );
+                    }}
+                    labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value: number) => `${currencySymbol}${value.toLocaleString()}`}
+                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-center text-muted-foreground py-12">No allocation data yet. Add your first snapshot to see your portfolio distribution.</p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Latest Notification Card */}
-        {latestNotification && (
-          <Card className={!latestNotification.is_read ? 'border-primary/50' : ''}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                Latest Notification
-                {!latestNotification.is_read && (
-                  <span className="h-2 w-2 rounded-full bg-primary" />
-                )}
-              </CardTitle>
-              <Bell className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="font-medium text-sm">{latestNotification.title}</p>
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                {latestNotification.message}
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                {new Date(latestNotification.created_at).toLocaleDateString()}
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              Latest Notification
+              {latestNotification && !latestNotification.is_read && (
+                <span className="h-2 w-2 rounded-full bg-primary" />
+              )}
+            </CardTitle>
+            <Bell className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {latestNotification ? (
+              <>
+                <p className="font-medium text-sm">{latestNotification.title}</p>
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                  {latestNotification.message}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {new Date(latestNotification.created_at).toLocaleDateString()}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground py-2">No notifications yet</p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Last Contribution Card */}
-        {latestContribution && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Last Contribution</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">
-                {getCurrencySymbol(latestContribution.currency)}{Number(latestContribution.amount).toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {contributionTypeLabels[latestContribution.contribution_type] || latestContribution.contribution_type}
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Last Contribution</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {latestContribution ? (
+              <>
+                <p className="text-2xl font-bold">
+                  {getCurrencySymbol(latestContribution.currency)}{Number(latestContribution.amount).toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {contributionTypeLabels[latestContribution.contribution_type] || latestContribution.contribution_type}
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground py-2">No contributions recorded yet</p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Ammo Status */}
         <Card>
@@ -330,60 +393,6 @@ export default function Dashboard() {
             error={marketDataError || undefined}
           />
         </div>
-
-        {/* Allocation Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Portfolio Allocation</CardTitle>
-            <CardDescription>Current asset distribution</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="45%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    dataKey="value"
-                    label={({ cx, cy, midAngle, outerRadius, percent, name, fill }) => {
-                      const RADIAN = Math.PI / 180;
-                      const radius = outerRadius + 20;
-                      const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                      const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                      return (
-                        <text
-                          x={x}
-                          y={y}
-                          fill={fill}
-                          textAnchor={x > cx ? 'start' : 'end'}
-                          dominantBaseline="central"
-                          fontSize={12}
-                          fontWeight={500}
-                        >
-                          {`${name} ${(percent * 100).toFixed(0)}%`}
-                        </text>
-                      );
-                    }}
-                    labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value: number) => `${currencySymbol}${value.toLocaleString()}`}
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-center text-foreground/70 py-12">No data yet</p>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </Layout>
   );
