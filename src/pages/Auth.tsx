@@ -11,6 +11,7 @@ import { Loader2, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { loginSchema, signupSchema, forgotPasswordSchema, getFirstError } from '@/lib/validation';
 import { isPasswordBreached } from '@/lib/passwordBreachCheck';
+import { PasswordStrengthIndicator } from '@/components/PasswordStrengthIndicator';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -188,7 +189,10 @@ export default function Auth() {
                 <p id="password-error" className="text-sm text-destructive">{errors.password}</p>
               )}
               {isSignUp && (
-                <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
+                <>
+                  <PasswordStrengthIndicator password={password} />
+                  <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
+                </>
               )}
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>

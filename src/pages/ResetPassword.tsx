@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, TrendingUp, CheckCircle } from 'lucide-react';
 import { setPasswordSchema } from '@/lib/validation';
 import { isPasswordBreached } from '@/lib/passwordBreachCheck';
+import { PasswordStrengthIndicator } from '@/components/PasswordStrengthIndicator';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -141,6 +142,7 @@ export default function ResetPassword() {
               {errors.password && (
                 <p className="text-sm text-destructive">{errors.password}</p>
               )}
+              <PasswordStrengthIndicator password={password} />
               <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
             </div>
             <div className="space-y-2">
