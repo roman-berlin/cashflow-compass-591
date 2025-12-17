@@ -152,6 +152,9 @@ export type Database = {
         Row: {
           cash_percent: number | null
           cash_value: number
+          cost_basis_cash: number
+          cost_basis_sp: number
+          cost_basis_ta: number
           created_at: string
           id: string
           percent_sp: number | null
@@ -167,6 +170,9 @@ export type Database = {
         Insert: {
           cash_percent?: number | null
           cash_value: number
+          cost_basis_cash?: number
+          cost_basis_sp?: number
+          cost_basis_ta?: number
           created_at?: string
           id?: string
           percent_sp?: number | null
@@ -182,6 +188,9 @@ export type Database = {
         Update: {
           cash_percent?: number | null
           cash_value?: number
+          cost_basis_cash?: number
+          cost_basis_sp?: number
+          cost_basis_ta?: number
           created_at?: string
           id?: string
           percent_sp?: number | null

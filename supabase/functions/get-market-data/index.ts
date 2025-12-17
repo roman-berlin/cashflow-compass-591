@@ -32,12 +32,13 @@ serve(async (req) => {
       throw new Error('TWELVE_DATA_API_KEY is not configured');
     }
 
-    // Parse request body for tickers (default to SPY only)
-    let tickers = ['SPY'];
+    // Parse request body for tickers (default to SPY and EIS for Israeli market)
+    let tickers = ['SPY', 'EIS'];
     try {
       const body = await req.json();
       if (body.tickers && Array.isArray(body.tickers)) {
-        tickers = body.tickers;
+        // Map TA35 to EIS (iShares MSCI Israel ETF) since TA35 isn't available
+        tickers = body.tickers.map((t: string) => t === 'TA35' ? 'EIS' : t);
       }
     } catch {
       // No body or invalid JSON, use defaults
