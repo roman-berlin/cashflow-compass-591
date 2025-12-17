@@ -9,7 +9,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { getCurrencySymbol } from '@/lib/currency';
 import { PerformanceChart } from '@/components/PerformanceChart';
 import { DrawdownChart } from '@/components/DrawdownChart';
-import { PortfolioProfitChart } from '@/components/PortfolioProfitChart';
+
 import type { Tables } from '@/integrations/supabase/types';
 
 interface TimeSeriesPoint {
@@ -158,18 +158,6 @@ export default function Dashboard() {
   // Extract time series data for charts
   const spyTimeSeries = marketData?.tickers?.SPY?.time_series || [];
   const eisTimeSeries = marketData?.tickers?.EIS?.time_series || [];
-
-  // Prepare snapshots data for profit chart
-  const snapshotsForProfitChart = snapshots.map(s => ({
-    snapshot_month: s.snapshot_month,
-    value_sp: Number(s.value_sp) || 0,
-    value_ta: Number(s.value_ta) || 0,
-    cash_value: Number(s.cash_value) || 0,
-    cost_basis_sp: Number((s as any).cost_basis_sp) || 0,
-    cost_basis_ta: Number((s as any).cost_basis_ta) || 0,
-    cost_basis_cash: Number((s as any).cost_basis_cash) || 0,
-    total_value: Number(s.total_value) || 0,
-  }));
 
   return (
     <Layout>
@@ -320,13 +308,6 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
-
-        {/* Portfolio Profit Chart */}
-        <PortfolioProfitChart 
-          snapshots={snapshotsForProfitChart}
-          currency={currency}
-          loading={loading}
-        />
 
         {/* Market Performance & Drawdown Charts */}
         <div className="grid grid-cols-1 gap-6">
