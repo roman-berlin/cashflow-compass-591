@@ -43,6 +43,55 @@ export function getMarketStatus(drawdownPercent: number, settings: Tables<'setti
   return 'normal';
 }
 
+// Translation function type
+type TranslateFunction = (key: string, params?: Record<string, string | number>) => string;
+
+// Helper to format recommendation text with translations
+export function getTranslatedRecommendation(
+  result: StrategyResult,
+  t: TranslateFunction
+): string {
+  const { recommendation_type, transfer_amount, market_status } = result;
+  
+  // Extract drawdown from recommendation_text (it's embedded in the English text)
+  const drawdownMatch = result.recommendation_text.match(/(\d+\.?\d*)%/);
+  const drawdown = drawdownMatch ? drawdownMatch[1] : '0';
+  const amount = transfer_amount?.toLocaleString() || '0';
+  
+  switch (recommendation_type) {
+    case 'STOP_CASH_OVER_MAX':
+      const cashMatch = result.recommendation_text.match(/Cash allocation \((\d+\.?\d*)%\)/);
+      const maxMatch = result.recommendation_text.match(/maximum \((\d+)%\)/);
+      const currentCash = cashMatch ? cashMatch[1] : '0';
+      const maxCash = maxMatch ? maxMatch[1] : '0';
+      return t('strategy.stopCashOverMax', { currentCash, maxCash });
+      
+    case 'FIRE_AMMO_3':
+      return t('strategy.fireAmmo3', { drawdown, amount });
+      
+    case 'FIRE_AMMO_2':
+      return t('strategy.fireAmmo2', { drawdown, amount });
+      
+    case 'FIRE_AMMO_1':
+      return t('strategy.fireAmmo1', { drawdown, amount });
+      
+    case 'REBUILD_AMMO':
+      const targetMatch = result.recommendation_text.match(/to (\d+)%/);
+      const target = targetMatch ? targetMatch[1] : '30';
+      return t('strategy.rebuildAmmo', { drawdown, target, amount });
+      
+    case 'NORMAL':
+      const cashContribMatch = result.recommendation_text.match(/Split contribution: ([\d,]+) to cash/);
+      const stocksContribMatch = result.recommendation_text.match(/([\d,]+) to equities/);
+      const cashContrib = cashContribMatch ? cashContribMatch[1] : '0';
+      const stocksContrib = stocksContribMatch ? stocksContribMatch[1] : '0';
+      return t('strategy.normal', { drawdown, cashContrib, stocksContrib });
+      
+    default:
+      return result.recommendation_text;
+  }
+}
+
 export function runStrategy(
   portfolio: PortfolioState,
   market: MarketState,

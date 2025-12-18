@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/hooks/useLanguage';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +19,7 @@ const marketStatusVariant: Record<string, 'default' | 'secondary' | 'destructive
 
 export default function Logs() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<Tables<'recommendations_log'>[]>([]);
 
@@ -36,6 +38,12 @@ export default function Logs() {
     setLoading(false);
   };
 
+  const getMarketStatusLabel = (status: string | null) => {
+    if (!status) return '';
+    const statusKey = `market.${status}` as const;
+    return t(statusKey);
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -50,29 +58,29 @@ export default function Logs() {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Recommendation Logs</h1>
-          <p className="text-muted-foreground">History of all strategy recommendations</p>
+          <h1 className="text-2xl font-bold">{t('logs.title')}</h1>
+          <p className="text-muted-foreground">{t('logs.subtitle')}</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>All Recommendations</CardTitle>
-            <CardDescription>{logs.length} total entries</CardDescription>
+            <CardTitle>{t('logs.allRecommendations')}</CardTitle>
+            <CardDescription>{logs.length} {t('logs.totalEntries')}</CardDescription>
           </CardHeader>
           <CardContent>
             {logs.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No recommendations yet. Create your first monthly update!</p>
+              <p className="text-center text-muted-foreground py-8">{t('logs.noRecommendations')}</p>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Drawdown</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead className="max-w-xs">Recommendation</TableHead>
+                      <TableHead>{t('logs.date')}</TableHead>
+                      <TableHead>{t('logs.type')}</TableHead>
+                      <TableHead>{t('logs.status')}</TableHead>
+                      <TableHead>{t('logs.drawdown')}</TableHead>
+                      <TableHead>{t('logs.amount')}</TableHead>
+                      <TableHead className="max-w-xs">{t('logs.recommendation')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -87,7 +95,7 @@ export default function Logs() {
                         <TableCell>
                           {log.market_status && (
                             <Badge variant={marketStatusVariant[log.market_status] || 'secondary'}>
-                              {log.market_status}
+                              {getMarketStatusLabel(log.market_status)}
                             </Badge>
                           )}
                         </TableCell>

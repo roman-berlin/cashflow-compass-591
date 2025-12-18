@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/hooks/useLanguage';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ import type { Tables } from '@/integrations/supabase/types';
 export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingName, setSavingName] = useState(false);
@@ -63,7 +65,7 @@ export default function Settings() {
       .maybeSingle();
 
     if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
+      toast({ variant: 'destructive', title: t('common.error'), description: error.message });
     } else if (data) {
       setSettings(data);
     }
@@ -73,7 +75,7 @@ export default function Settings() {
   const handleSave = async () => {
     // Validate allocation sum
     if (allocationError) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Target allocations must sum to 100%' });
+      toast({ variant: 'destructive', title: t('common.error'), description: t('settings.allocationMustEqual100') });
       return;
     }
     
@@ -88,20 +90,20 @@ export default function Settings() {
       }, { onConflict: 'user_id' });
 
     if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
+      toast({ variant: 'destructive', title: t('common.error'), description: error.message });
     } else {
-      toast({ title: 'Settings saved!' });
+      toast({ title: t('settings.saved') });
     }
     setSaving(false);
   };
 
   const handleUpdateName = async () => {
     if (!profileName.trim()) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Name cannot be empty' });
+      toast({ variant: 'destructive', title: t('common.error'), description: t('settings.nameEmpty') });
       return;
     }
     if (profileName.length > 100) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Name must be less than 100 characters' });
+      toast({ variant: 'destructive', title: t('common.error'), description: t('settings.nameTooLong') });
       return;
     }
 
@@ -111,9 +113,9 @@ export default function Settings() {
     });
 
     if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
+      toast({ variant: 'destructive', title: t('common.error'), description: error.message });
     } else {
-      toast({ title: 'Name updated successfully!' });
+      toast({ title: t('settings.nameUpdated') });
     }
     setSavingName(false);
   };
@@ -129,9 +131,9 @@ export default function Settings() {
       }, { onConflict: 'user_id' });
 
     if (error) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
+      toast({ variant: 'destructive', title: t('common.error'), description: error.message });
     } else {
-      toast({ title: 'Ammo state reset to Ready!' });
+      toast({ title: t('settings.ammoReset') });
     }
     setConfirmReset(false);
   };
@@ -150,12 +152,12 @@ export default function Settings() {
       });
 
       if (error) {
-        toast({ variant: 'destructive', title: 'Error', description: error.message });
+        toast({ variant: 'destructive', title: t('common.error'), description: error.message });
       } else {
-        toast({ title: 'Test email sent!', description: `Check your inbox at ${user?.email}` });
+        toast({ title: t('settings.testEmailSent'), description: `${t('settings.checkInbox')} ${user?.email}` });
       }
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to send test email' });
+      toast({ variant: 'destructive', title: t('common.error'), description: err.message || 'Failed to send test email' });
     } finally {
       setSendingTestEmail(false);
     }
@@ -179,8 +181,8 @@ export default function Settings() {
     <Layout>
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">Configure your long-term strategy parameters</p>
+          <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
+          <p className="text-muted-foreground">{t('settings.subtitle')}</p>
         </div>
 
         {/* Profile Section */}
@@ -188,35 +190,35 @@ export default function Settings() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Profile
+              {t('settings.profile')}
             </CardTitle>
-            <CardDescription>Manage your profile information</CardDescription>
+            <CardDescription>{t('settings.profileDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label>Email</Label>
+              <Label>{t('settings.email')}</Label>
               <Input
                 type="email"
                 value={user?.email || ''}
                 disabled
                 className="bg-muted"
               />
-              <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+              <p className="text-xs text-muted-foreground">{t('settings.emailCannotChange')}</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="profileName">Full Name</Label>
+              <Label htmlFor="profileName">{t('settings.fullName')}</Label>
               <Input
                 id="profileName"
                 type="text"
                 value={profileName}
                 onChange={(e) => setProfileName(e.target.value)}
-                placeholder="Enter your full name"
+                placeholder={t('settings.enterFullName')}
                 maxLength={100}
               />
             </div>
             <Button onClick={handleUpdateName} disabled={savingName} variant="outline">
               {savingName ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Update Name
+              {t('settings.updateName')}
             </Button>
           </CardContent>
         </Card>
@@ -226,30 +228,30 @@ export default function Settings() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
-              Email Notifications
+              {t('settings.emailNotifications')}
             </CardTitle>
-            <CardDescription>Test your email notification setup</CardDescription>
+            <CardDescription>{t('settings.testEmailSetup')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Send a test email to verify your notification setup is working correctly.
+              {t('settings.testEmailSetup')}
             </p>
             <Button onClick={handleSendTestEmail} disabled={sendingTestEmail} variant="outline">
               {sendingTestEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
-              Send Test Email
+              {t('settings.sendTestEmail')}
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Target Allocation</CardTitle>
-            <CardDescription>Your ideal portfolio balance (must equal 100%)</CardDescription>
+            <CardTitle>{t('settings.targetAllocation')}</CardTitle>
+            <CardDescription>{t('settings.allocationDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>SNP (%)</Label>
+                <Label>{t('settings.snpPercent')}</Label>
                 <Input
                   type="number"
                   value={settings.snp_target_percent}
@@ -257,7 +259,7 @@ export default function Settings() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>TA125 (%)</Label>
+                <Label>{t('settings.ta125Percent')}</Label>
                 <Input
                   type="number"
                   value={settings.ta125_target_percent}
@@ -265,7 +267,7 @@ export default function Settings() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Cash (%)</Label>
+                <Label>{t('settings.cashPercent')}</Label>
                 <Input
                   type="number"
                   value={settings.cash_target_percent}
@@ -274,19 +276,19 @@ export default function Settings() {
               </div>
             </div>
             <div className={`text-sm font-medium ${allocationError ? 'text-destructive' : 'text-muted-foreground'}`}>
-              Total: {allocationSum}%{allocationError && ' — Must equal 100%'}
+              {t('settings.total')}: {allocationSum}%{allocationError && ` — ${t('settings.mustEqual100')}`}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Cash Thresholds</CardTitle>
-            <CardDescription>Define cash allocation boundaries</CardDescription>
+            <CardTitle>{t('settings.cashThresholds')}</CardTitle>
+            <CardDescription>{t('settings.cashThresholdsDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Cash Min (%)</Label>
+              <Label>{t('settings.cashMin')}</Label>
               <Input
                 type="number"
                 value={settings.cash_min_pct}
@@ -294,16 +296,16 @@ export default function Settings() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Cash Target (%)</Label>
+              <Label>{t('settings.cashTarget')}</Label>
               <Input
                 type="number"
                 value={settings.cash_target_percent}
                 disabled
               />
-              <p className="text-xs text-muted-foreground">Set in Target Allocation</p>
+              <p className="text-xs text-muted-foreground">{t('settings.setInTargetAllocation')}</p>
             </div>
             <div className="space-y-2">
-              <Label>Cash Max (%)</Label>
+              <Label>{t('settings.cashMax')}</Label>
               <Input
                 type="number"
                 value={settings.cash_max_pct}
@@ -315,13 +317,13 @@ export default function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Ammo Triggers</CardTitle>
-            <CardDescription>Market drawdown thresholds to deploy cash (each tranche = 1/3 of current cash)</CardDescription>
+            <CardTitle>{t('settings.ammoTriggers')}</CardTitle>
+            <CardDescription>{t('settings.ammoTriggersDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Tranche 1 (%)</Label>
+                <Label>{t('settings.tranche1')}</Label>
                 <Input
                   type="number"
                   value={settings.tranche_1_trigger}
@@ -329,7 +331,7 @@ export default function Settings() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Tranche 2 (%)</Label>
+                <Label>{t('settings.tranche2')}</Label>
                 <Input
                   type="number"
                   value={settings.tranche_2_trigger}
@@ -337,7 +339,7 @@ export default function Settings() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Tranche 3 (%)</Label>
+                <Label>{t('settings.tranche3')}</Label>
                 <Input
                   type="number"
                   value={settings.tranche_3_trigger}
@@ -346,13 +348,13 @@ export default function Settings() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Rebuild Threshold (%)</Label>
+              <Label>{t('settings.rebuildThreshold')}</Label>
               <Input
                 type="number"
                 value={settings.rebuild_threshold}
                 onChange={(e) => updateField('rebuild_threshold', parseFloat(e.target.value) || 0)}
               />
-              <p className="text-xs text-muted-foreground">When drawdown falls below this, start rebuilding ammo</p>
+              <p className="text-xs text-muted-foreground">{t('settings.rebuildThresholdDescription')}</p>
             </div>
           </CardContent>
         </Card>
@@ -360,28 +362,28 @@ export default function Settings() {
         <div className="flex gap-4">
           <Button onClick={handleSave} disabled={saving} className="flex-1">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save Settings
+            {t('settings.saveSettings')}
           </Button>
           
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline">
                 <RotateCcw className="mr-2 h-4 w-4" />
-                Reset Ammo
+                {t('settings.resetAmmo')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Reset Ammo Status</AlertDialogTitle>
+                <AlertDialogTitle>{t('settings.resetAmmoTitle')}</AlertDialogTitle>
                 <AlertDialogDescription asChild>
                   <div className="space-y-3">
-                    <p>This will reset all ammo tranches to "Ready" status.</p>
+                    <p>{t('settings.resetAmmoDescription')}</p>
                     <div className="bg-muted p-3 rounded-md space-y-2 text-sm">
-                      <p className="font-medium">This does NOT move any money.</p>
-                      <p>This only resets tranche status to Ready.</p>
+                      <p className="font-medium">{t('settings.doesNotMoveMoney')}</p>
+                      <p>{t('settings.onlyResetsStatus')}</p>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Use this when the previous market cycle is complete and cash has rebuilt to target.
+                      {t('settings.resetAmmoUseCase')}
                     </p>
                     <div className="flex items-center space-x-2 pt-2">
                       <Checkbox 
@@ -393,16 +395,16 @@ export default function Settings() {
                         htmlFor="confirm"
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
-                        I understand this is a logical reset only
+                        {t('settings.confirmReset')}
                       </label>
                     </div>
                   </div>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setConfirmReset(false)}>Cancel</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => setConfirmReset(false)}>{t('common.cancel')}</AlertDialogCancel>
                 <AlertDialogAction onClick={handleResetAmmo} disabled={!confirmReset}>
-                  Reset Ammo
+                  {t('settings.resetAmmo')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
