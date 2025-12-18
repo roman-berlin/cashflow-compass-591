@@ -414,7 +414,45 @@ export default function Update() {
             
             {/* Calculated per-asset breakdown (read-only) */}
             <div className="pt-4 border-t">
-              <p className="text-sm font-medium text-muted-foreground mb-3">Allocation Breakdown</p>
+              <p className="text-sm font-medium text-muted-foreground mb-3">Target Allocation</p>
+              
+              {/* Visual allocation bar */}
+              <div className="mb-4">
+                <div className="flex h-3 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-blue-500 transition-all" 
+                    style={{ width: `${snpPercent}%` }}
+                    title={`SNP: ${snpPercent}%`}
+                  />
+                  <div 
+                    className="bg-emerald-500 transition-all" 
+                    style={{ width: `${ta125Percent}%` }}
+                    title={`TA125: ${ta125Percent}%`}
+                  />
+                  <div 
+                    className="bg-amber-500 transition-all" 
+                    style={{ width: `${cashPercent}%` }}
+                    title={`Cash: ${cashPercent}%`}
+                  />
+                </div>
+                <div className="flex justify-between mt-2 text-xs">
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span className="text-muted-foreground">SNP {snpPercent}%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-muted-foreground">TA125 {ta125Percent}%</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="text-muted-foreground">Cash {cashPercent}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Amount breakdown */}
+              <p className="text-sm font-medium text-muted-foreground mb-3">Contribution Breakdown</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground whitespace-nowrap">SNP ({snpPercent}%)</Label>
