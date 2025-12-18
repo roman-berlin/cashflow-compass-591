@@ -42,6 +42,14 @@ export const setPasswordSchema = z.object({
   path: ['confirmPassword'],
 });
 
+export const resetPasswordSchema = z.object({
+  password: passwordSchema,
+  confirmPassword: z.string().min(1, 'Please confirm your password'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+});
+
 // Admin validation schemas
 export const inviteUserSchema = z.object({
   email: emailSchema,
@@ -105,6 +113,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type SetPasswordInput = z.infer<typeof setPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type InviteUserInput = z.infer<typeof inviteUserSchema>;
 export type SettingsInput = z.infer<typeof settingsSchema>;
 export type PortfolioUpdateInput = z.infer<typeof portfolioUpdateSchema>;

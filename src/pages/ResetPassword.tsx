@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, TrendingUp, CheckCircle } from 'lucide-react';
-import { setPasswordSchema } from '@/lib/validation';
+import { resetPasswordSchema } from '@/lib/validation';
 import { isPasswordBreached } from '@/lib/passwordBreachCheck';
 import { PasswordStrengthIndicator } from '@/components/PasswordStrengthIndicator';
 
@@ -29,7 +29,7 @@ export default function ResetPassword() {
     setErrors({});
 
     // Validate passwords
-    const result = setPasswordSchema.safeParse({ password, confirmPassword });
+    const result = resetPasswordSchema.safeParse({ password, confirmPassword });
     if (!result.success) {
       const fieldErrors: { password?: string; confirmPassword?: string } = {};
       result.error.errors.forEach((err) => {
