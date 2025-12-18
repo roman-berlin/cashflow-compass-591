@@ -339,9 +339,9 @@ export default function Update() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>SPY ({currencySymbol})</Label>
+                <Label className="whitespace-nowrap">SPY ({currencySymbol})</Label>
                 <Input
                   type="number"
                   value={valueSp || ''}
@@ -351,7 +351,7 @@ export default function Update() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>TA-125 ({currencySymbol})</Label>
+                <Label className="whitespace-nowrap">TA-125 ({currencySymbol})</Label>
                 <Input
                   type="number"
                   value={valueTa || ''}
@@ -361,7 +361,7 @@ export default function Update() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Cash / MMF ({currencySymbol})</Label>
+                <Label className="whitespace-nowrap">Cash ({currencySymbol})</Label>
                 <Input
                   type="number"
                   value={valueCash || ''}
@@ -415,9 +415,9 @@ export default function Update() {
             {/* Calculated per-asset breakdown (read-only) */}
             <div className="pt-4 border-t">
               <p className="text-sm font-medium text-muted-foreground mb-3">Allocation Breakdown</p>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">SNP ({snpPercent}%)</Label>
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">SNP ({snpPercent}%)</Label>
                   <Input
                     type="text"
                     value={`${currencySymbol}${contributionSpy.toLocaleString()}`}
@@ -426,7 +426,7 @@ export default function Update() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">TA125 ({ta125Percent}%)</Label>
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">TA125 ({ta125Percent}%)</Label>
                   <Input
                     type="text"
                     value={`${currencySymbol}${contributionTa.toLocaleString()}`}
@@ -435,7 +435,7 @@ export default function Update() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Cash ({cashPercent}%)</Label>
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Cash ({cashPercent}%)</Label>
                   <Input
                     type="text"
                     value={`${currencySymbol}${contributionCash.toLocaleString()}`}
