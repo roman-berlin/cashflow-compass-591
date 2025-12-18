@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/hooks/useLanguage';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ interface AppUser {
 export default function Admin() {
   const { isAdmin, isOwner, loading: roleLoading } = useUserRole();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -43,10 +45,10 @@ export default function Admin() {
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
-      toast({ variant: 'destructive', title: 'Access Denied', description: 'Admin access required' });
+      toast({ variant: 'destructive', title: t('admin.accessDenied'), description: t('admin.adminRequired') });
       navigate('/');
     }
-  }, [isAdmin, roleLoading, navigate, toast]);
+  }, [isAdmin, roleLoading, navigate, toast, t]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -56,7 +58,7 @@ export default function Admin() {
       setUsers(data.users || []);
     } catch (err) {
       console.error('Error fetching users:', err);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch users' });
+      toast({ variant: 'destructive', title: t('common.error'), description: 'Failed to fetch users' });
     } finally {
       setLoading(false);
     }
@@ -94,13 +96,13 @@ export default function Admin() {
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
-      toast({ title: 'Success', description: 'Invitation sent successfully' });
+      toast({ title: t('common.success'), description: t('admin.invitationSent') });
       setInviteEmail('');
       setInviteName('');
       setInviteRole('user');
       fetchUsers();
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to send invitation' });
+      toast({ variant: 'destructive', title: t('common.error'), description: err.message || 'Failed to send invitation' });
     } finally {
       setInviting(false);
     }
@@ -113,10 +115,10 @@ export default function Admin() {
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
-      toast({ title: 'Success', description: 'Role updated successfully' });
+      toast({ title: t('common.success'), description: t('admin.roleUpdated') });
       fetchUsers();
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to update role' });
+      toast({ variant: 'destructive', title: t('common.error'), description: err.message || 'Failed to update role' });
     }
   };
 
@@ -127,18 +129,18 @@ export default function Admin() {
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
-      toast({ title: 'Success', description: `User ${email} deleted successfully` });
+      toast({ title: t('common.success'), description: `${email} ${t('admin.userDeleted')}` });
       fetchUsers();
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Error', description: err.message || 'Failed to delete user' });
+      toast({ variant: 'destructive', title: t('common.error'), description: err.message || 'Failed to delete user' });
     }
   };
 
   const getRoleBadge = (role: string) => {
     switch (role) {
-      case 'owner': return <Badge className="bg-amber-500 hover:bg-amber-600"><Crown className="w-3 h-3 mr-1" />Owner</Badge>;
-      case 'admin': return <Badge className="bg-blue-500 hover:bg-blue-600"><Shield className="w-3 h-3 mr-1" />Admin</Badge>;
-      default: return <Badge variant="secondary"><User className="w-3 h-3 mr-1" />User</Badge>;
+      case 'owner': return <Badge className="bg-amber-500 hover:bg-amber-600"><Crown className="w-3 h-3 mr-1" />{t('admin.owner')}</Badge>;
+      case 'admin': return <Badge className="bg-blue-500 hover:bg-blue-600"><Shield className="w-3 h-3 mr-1" />{t('admin.admin')}</Badge>;
+      default: return <Badge variant="secondary"><User className="w-3 h-3 mr-1" />{t('admin.user')}</Badge>;
     }
   };
 
@@ -152,19 +154,19 @@ export default function Admin() {
     <Layout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Admin Panel</h1>
+          <h1 className="text-2xl font-bold">{t('admin.title')}</h1>
           <Button variant="outline" size="sm" onClick={fetchUsers} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
+            {t('admin.refresh')}
           </Button>
         </div>
 
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><UserPlus className="h-5 w-5" />Invite User</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><UserPlus className="h-5 w-5" />{t('admin.inviteUser')}</CardTitle></CardHeader>
           <CardContent>
             <form onSubmit={handleInvite} className="flex flex-wrap gap-4 items-end">
               <div className="space-y-2 flex-1 min-w-[200px]">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('admin.email')}</Label>
                 <Input 
                   id="email" 
                   type="email" 
@@ -181,7 +183,7 @@ export default function Admin() {
                 )}
               </div>
               <div className="space-y-2 flex-1 min-w-[150px]">
-                <Label htmlFor="name">Name (optional)</Label>
+                <Label htmlFor="name">{t('admin.nameOptional')}</Label>
                 <Input 
                   id="name" 
                   value={inviteName} 
@@ -198,43 +200,43 @@ export default function Admin() {
               </div>
               {isOwner && (
                 <div className="space-y-2 w-[120px]">
-                  <Label>Role</Label>
+                  <Label>{t('admin.role')}</Label>
                   <Select value={inviteRole} onValueChange={(v: 'user' | 'admin') => setInviteRole(v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="user">{t('admin.user')}</SelectItem>
+                      <SelectItem value="admin">{t('admin.admin')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               )}
               <Button type="submit" disabled={inviting}>
                 {inviting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Send Invite
+                {t('admin.sendInvite')}
               </Button>
             </form>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Users ({users.length})</CardTitle></CardHeader>
+          <CardHeader><CardTitle>{t('admin.users')} ({users.length})</CardTitle></CardHeader>
           <CardContent>
             {loading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
             ) : users.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No users found</p>
+              <p className="text-center text-muted-foreground py-8">{t('admin.noUsers')}</p>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Status</TableHead>
-                      {isOwner && <TableHead>Actions</TableHead>}
+                      <TableHead>{t('admin.email')}</TableHead>
+                      <TableHead>{t('admin.name')}</TableHead>
+                      <TableHead>{t('admin.role')}</TableHead>
+                      <TableHead>{t('admin.status')}</TableHead>
+                      {isOwner && <TableHead>{t('admin.actions')}</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -245,9 +247,9 @@ export default function Admin() {
                         <TableCell>{getRoleBadge(u.role)}</TableCell>
                         <TableCell>
                           {u.invited && !u.password_set ? (
-                            <Badge variant="outline" className="text-amber-600 border-amber-600">Pending</Badge>
+                            <Badge variant="outline" className="text-amber-600 border-amber-600">{t('admin.pending')}</Badge>
                           ) : (
-                            <Badge variant="outline" className="text-green-600 border-green-600">Active</Badge>
+                            <Badge variant="outline" className="text-green-600 border-green-600">{t('admin.active')}</Badge>
                           )}
                         </TableCell>
                         {isOwner && (
@@ -258,8 +260,8 @@ export default function Admin() {
                                   <Select value={u.role} onValueChange={(v: 'user' | 'admin') => handleRoleChange(u.id, v)}>
                                     <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="user">User</SelectItem>
-                                      <SelectItem value="admin">Admin</SelectItem>
+                                      <SelectItem value="user">{t('admin.user')}</SelectItem>
+                                      <SelectItem value="admin">{t('admin.admin')}</SelectItem>
                                     </SelectContent>
                                   </Select>
                                   <AlertDialog>
@@ -270,18 +272,18 @@ export default function Admin() {
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                       <AlertDialogHeader>
-                                        <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                        <AlertDialogTitle>{t('admin.deleteUser')}</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                          Are you sure you want to delete <strong>{u.email}</strong>? This will permanently remove the user and all their data. This action cannot be undone.
+                                          {t('admin.deleteUserConfirm')} <strong>{u.email}</strong>? {t('admin.deleteUserWarning')}
                                         </AlertDialogDescription>
                                       </AlertDialogHeader>
                                       <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                                         <AlertDialogAction
                                           onClick={() => handleDeleteUser(u.id, u.email)}
                                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                         >
-                                          Delete
+                                          {t('admin.delete')}
                                         </AlertDialogAction>
                                       </AlertDialogFooter>
                                     </AlertDialogContent>

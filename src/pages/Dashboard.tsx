@@ -180,10 +180,10 @@ export default function Dashboard() {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5 text-primary" />
-                Welcome to Portfolio Ammo!
+                {t('dashboard.welcomeTitle')}
               </CardTitle>
               <CardDescription>
-                Get started in 2 simple steps to track your portfolio and get smart rebalancing recommendations.
+                {t('dashboard.welcomeDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -191,17 +191,17 @@ export default function Dashboard() {
                 <div className="flex items-start gap-3 p-3 rounded-lg bg-background border">
                   <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-bold text-sm shrink-0">1</div>
                   <div>
-                    <p className="font-medium">Configure your strategy</p>
-                    <p className="text-sm text-muted-foreground">Set your target allocation and ammo triggers</p>
-                    <a href="/settings" className="text-sm text-primary hover:underline mt-1 inline-block">Go to Settings →</a>
+                    <p className="font-medium">{t('dashboard.step1Title')}</p>
+                    <p className="text-sm text-muted-foreground">{t('dashboard.step1Description')}</p>
+                    <a href="/settings" className="text-sm text-primary hover:underline mt-1 inline-block">{t('dashboard.goToSettings')}</a>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-3 rounded-lg bg-background border">
                   <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-bold text-sm shrink-0">2</div>
                   <div>
-                    <p className="font-medium">Enter your portfolio values</p>
-                    <p className="text-sm text-muted-foreground">Add your current holdings and contributions</p>
-                    <a href="/update" className="text-sm text-primary hover:underline mt-1 inline-block">Create First Update →</a>
+                    <p className="font-medium">{t('dashboard.step2Title')}</p>
+                    <p className="text-sm text-muted-foreground">{t('dashboard.step2Description')}</p>
+                    <a href="/update" className="text-sm text-primary hover:underline mt-1 inline-block">{t('dashboard.createFirstUpdate')}</a>
                   </div>
                 </div>
               </div>
@@ -213,7 +213,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Value</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.totalValue')}</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -225,7 +225,7 @@ export default function Dashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">S&P / SPY</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.snp')}</CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -239,7 +239,7 @@ export default function Dashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">TA-125</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.ta125')}</CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -253,7 +253,7 @@ export default function Dashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Cash (Ammo)</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.cashAmmo')}</CardTitle>
               <PiggyBank className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -267,14 +267,14 @@ export default function Dashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Target</CardTitle>
+              <CardTitle className="text-sm font-medium">{t('dashboard.target')}</CardTitle>
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <p className="text-sm">
                 {settings ? `${settings.stocks_target_percent}% / ${settings.cash_target_percent}%` : '70% / 30%'}
               </p>
-              <p className="text-xs text-muted-foreground">Equities / Cash</p>
+              <p className="text-xs text-muted-foreground">{t('dashboard.equitiesCash')}</p>
             </CardContent>
           </Card>
         </div>
@@ -282,8 +282,8 @@ export default function Dashboard() {
         {/* Allocation Chart - moved up for visibility */}
         <Card>
           <CardHeader>
-            <CardTitle>Portfolio Allocation</CardTitle>
-            <CardDescription>Current asset distribution</CardDescription>
+            <CardTitle>{t('dashboard.portfolioAllocation')}</CardTitle>
+            <CardDescription>{t('dashboard.currentDistribution')}</CardDescription>
           </CardHeader>
           <CardContent>
             {pieData.length > 0 ? (
@@ -336,11 +336,11 @@ export default function Dashboard() {
               </ResponsiveContainer>
             ) : (
               <div className="text-center py-12 space-y-4">
-                <p className="text-muted-foreground">No allocation data yet</p>
+                <p className="text-muted-foreground">{t('dashboard.noAllocationData')}</p>
                 <Link to="/update">
                   <Button variant="outline" size="sm">
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Your First Update
+                    {t('dashboard.addFirstUpdate')}
                   </Button>
                 </Link>
               </div>
@@ -355,7 +355,7 @@ export default function Dashboard() {
             <Card className="h-full">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  Latest Notification
+                  {t('dashboard.latestNotification')}
                   {latestNotification && !latestNotification.is_read && (
                     <span className="h-2 w-2 rounded-full bg-primary" />
                   )}
@@ -374,7 +374,7 @@ export default function Dashboard() {
                     </p>
                   </>
                 ) : (
-                  <p className="text-sm text-muted-foreground py-2">Notifications appear here when you receive strategy recommendations</p>
+                  <p className="text-sm text-muted-foreground py-2">{t('dashboard.notificationsAppear')}</p>
                 )}
               </CardContent>
             </Card>
