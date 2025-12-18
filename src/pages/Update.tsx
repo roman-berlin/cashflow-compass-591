@@ -29,10 +29,8 @@ export default function Update() {
   const [marketDataLoading, setMarketDataLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Per-asset contribution inputs
-  const [contributionSpy, setContributionSpy] = useState(0);
-  const [contributionTa, setContributionTa] = useState(0);
-  const [contributionCash, setContributionCash] = useState(0);
+  // Total contribution input (user enters this)
+  const [totalContribution, setTotalContribution] = useState(0);
   const [contributionCurrency, setContributionCurrency] = useState<'USD' | 'NIS'>('NIS');
 
   // Portfolio values from last snapshot (for strategy engine)
@@ -105,6 +103,15 @@ export default function Update() {
       setMarketDataLoading(false);
     }
   };
+
+  // Calculate per-asset contributions based on settings percentages
+  const snpPercent = (settings as any)?.snp_target_percent ?? 50;
+  const ta125Percent = (settings as any)?.ta125_target_percent ?? 25;
+  const cashPercent = settings?.cash_target_percent ?? 25;
+  
+  const contributionSpy = totalContribution * (snpPercent / 100);
+  const contributionTa = totalContribution * (ta125Percent / 100);
+  const contributionCash = totalContribution * (cashPercent / 100);
 
   const runStrategyEngine = () => {
     if (!settings || !marketData?.SPY) return null;
@@ -271,10 +278,8 @@ export default function Update() {
 
       // Reset inputs
       setEditingValues(false);
-      // Reset contribution inputs
-      setContributionSpy(0);
-      setContributionTa(0);
-      setContributionCash(0);
+      // Reset total contribution
+      setTotalContribution(0);
       loadData();
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Error', description: err.message });
@@ -307,7 +312,6 @@ export default function Update() {
 
   const StatusConfig = recommendation ? marketStatusConfig[recommendation.market_status] : null;
   const currencySymbol = getCurrencySymbol(contributionCurrency);
-  const totalContribution = contributionSpy + contributionTa + contributionCash;
 
   return (
     <Layout>
@@ -374,45 +378,24 @@ export default function Update() {
           </CardContent>
         </Card>
 
-        {/* Per-Asset Contributions */}
+        {/* New Contribution */}
         <Card>
           <CardHeader>
-            <CardTitle>New Contributions</CardTitle>
-            <CardDescription>Enter how much you're adding this month</CardDescription>
+            <CardTitle>New Contribution</CardTitle>
+            <CardDescription>Enter your total contribution – it will be split according to your target allocation</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>SPY ({currencySymbol})</Label>
+            <div className="flex items-center gap-4">
+              <div className="flex-1 space-y-2">
+                <Label>Total Contribution ({currencySymbol})</Label>
                 <Input
                   type="number"
-                  value={contributionSpy || ''}
-                  onChange={(e) => setContributionSpy(parseFloat(e.target.value) || 0)}
+                  value={totalContribution || ''}
+                  onChange={(e) => setTotalContribution(parseFloat(e.target.value) || 0)}
                   placeholder="0"
                 />
               </div>
               <div className="space-y-2">
-                <Label>TA-125 ({currencySymbol})</Label>
-                <Input
-                  type="number"
-                  value={contributionTa || ''}
-                  onChange={(e) => setContributionTa(parseFloat(e.target.value) || 0)}
-                  placeholder="0"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Cash / MMF ({currencySymbol})</Label>
-                <Input
-                  type="number"
-                  value={contributionCash || ''}
-                  onChange={(e) => setContributionCash(parseFloat(e.target.value) || 0)}
-                  placeholder="0"
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between pt-2 border-t">
-              <div className="space-y-1">
                 <Label>Currency</Label>
                 <Select
                   value={contributionCurrency}
@@ -427,9 +410,39 @@ export default function Update() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Total Contribution</p>
-                <p className="text-xl font-bold">{currencySymbol}{totalContribution.toLocaleString()}</p>
+            </div>
+            
+            {/* Calculated per-asset breakdown (read-only) */}
+            <div className="pt-4 border-t">
+              <p className="text-sm font-medium text-muted-foreground mb-3">Allocation Breakdown</p>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">SNP ({snpPercent}%)</Label>
+                  <Input
+                    type="text"
+                    value={`${currencySymbol}${contributionSpy.toLocaleString()}`}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">TA125 ({ta125Percent}%)</Label>
+                  <Input
+                    type="text"
+                    value={`${currencySymbol}${contributionTa.toLocaleString()}`}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Cash ({cashPercent}%)</Label>
+                  <Input
+                    type="text"
+                    value={`${currencySymbol}${contributionCash.toLocaleString()}`}
+                    disabled
+                    className="bg-muted"
+                  />
+                </div>
               </div>
             </div>
           </CardContent>
