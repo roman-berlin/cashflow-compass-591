@@ -287,53 +287,53 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             {pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={320}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={80}
-                    outerRadius={130}
-                    dataKey="value"
-                    label={({ cx, cy, midAngle, outerRadius, percent, name, fill }) => {
-                      const RADIAN = Math.PI / 180;
-                      const radius = outerRadius + 35;
-                      const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                      const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                      return (
-                        <text
-                          x={x}
-                          y={y}
-                          fill={fill}
-                          textAnchor="middle"
-                          dominantBaseline="central"
-                          fontSize={14}
-                          fontWeight={600}
-                        >
-                          {`${name} ${(percent * 100).toFixed(0)}%`}
-                        </text>
-                      );
-                    }}
-                    labelLine={false}
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value: number) => `${currencySymbol}${value.toLocaleString()}`}
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                      color: 'hsl(var(--foreground))'
-                    }}
-                    labelStyle={{ color: 'hsl(var(--foreground))' }}
-                    itemStyle={{ color: 'hsl(var(--foreground))' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <div className="space-y-4">
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={70}
+                      outerRadius={110}
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number) => `${currencySymbol}${value.toLocaleString()}`}
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        color: 'hsl(var(--foreground))'
+                      }}
+                      labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      itemStyle={{ color: 'hsl(var(--foreground))' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Legend below the chart */}
+                <div className="flex justify-center gap-6 flex-wrap">
+                  {pieData.map((entry) => {
+                    const total = pieData.reduce((sum, d) => sum + d.value, 0);
+                    const percent = total > 0 ? ((entry.value / total) * 100).toFixed(0) : '0';
+                    return (
+                      <div key={entry.name} className="flex items-center gap-2">
+                        <div 
+                          className="w-4 h-4 rounded-sm" 
+                          style={{ backgroundColor: entry.color }} 
+                        />
+                        <span className="text-sm font-medium">
+                          {entry.name}: {percent}%
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             ) : (
               <div className="text-center py-12 space-y-4">
                 <p className="text-muted-foreground">{t('dashboard.noAllocationData')}</p>
