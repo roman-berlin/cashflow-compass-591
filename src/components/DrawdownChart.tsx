@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine, Legend } from 'recharts';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useLanguage } from '@/hooks/useLanguage';
 
 interface TimeSeriesPoint {
   date: string;
@@ -19,12 +20,14 @@ interface DrawdownChartProps {
 }
 
 export function DrawdownChart({ spyData, ta35Data = [], triggers, loading, error }: DrawdownChartProps) {
+  const { t } = useLanguage();
+
   if (loading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Market Drawdown</CardTitle>
-          <CardDescription>Distance from 52-week high</CardDescription>
+          <CardTitle>{t('chart.marketDrawdown')}</CardTitle>
+          <CardDescription>{t('chart.distanceFrom52w')}</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[300px]">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -37,8 +40,8 @@ export function DrawdownChart({ spyData, ta35Data = [], triggers, loading, error
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Market Drawdown</CardTitle>
-          <CardDescription>Distance from 52-week high</CardDescription>
+          <CardTitle>{t('chart.marketDrawdown')}</CardTitle>
+          <CardDescription>{t('chart.distanceFrom52w')}</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[300px]">
           <p className="text-muted-foreground">{error}</p>
@@ -69,10 +72,10 @@ export function DrawdownChart({ spyData, ta35Data = [], triggers, loading, error
 
   // Determine which trigger zone we're in
   const getZoneStatus = (drawdown: number) => {
-    if (drawdown >= triggers.t3) return { zone: 'T3', color: 'destructive' as const, label: 'Crash Zone' };
-    if (drawdown >= triggers.t2) return { zone: 'T2', color: 'destructive' as const, label: 'Bear Zone' };
-    if (drawdown >= triggers.t1) return { zone: 'T1', color: 'secondary' as const, label: 'Correction Zone' };
-    return { zone: 'Normal', color: 'outline' as const, label: 'Normal' };
+    if (drawdown >= triggers.t3) return { zone: 'T3', color: 'destructive' as const, label: t('chart.crashZone') };
+    if (drawdown >= triggers.t2) return { zone: 'T2', color: 'destructive' as const, label: t('chart.bearZone') };
+    if (drawdown >= triggers.t1) return { zone: 'T1', color: 'secondary' as const, label: t('chart.correctionZone') };
+    return { zone: 'Normal', color: 'outline' as const, label: t('market.normal') };
   };
 
   const spyZone = getZoneStatus(currentSPYDrawdown);
@@ -83,12 +86,12 @@ export function DrawdownChart({ spyData, ta35Data = [], triggers, loading, error
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <CardTitle className="flex items-center gap-2">
-              Market Drawdown
+              {t('chart.marketDrawdown')}
               {currentSPYDrawdown >= triggers.t1 && (
                 <AlertTriangle className="h-4 w-4 text-destructive" />
               )}
             </CardTitle>
-            <CardDescription>Distance from 52-week high • Ammo trigger zones</CardDescription>
+            <CardDescription>{t('chart.distanceFrom52w')} • {t('chart.ammoTriggerZones')}</CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={spyZone.color}>
@@ -221,22 +224,22 @@ export function DrawdownChart({ spyData, ta35Data = [], triggers, loading, error
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <p className="text-center text-muted-foreground py-12">No drawdown data available</p>
+          <p className="text-center text-muted-foreground py-12">{t('chart.noDrawdownData')}</p>
         )}
         
         {/* Trigger zone legend */}
         <div className="flex justify-center gap-4 mt-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <div className="w-3 h-0.5 bg-[#f59e0b]" />
-            <span>T1: Correction ({triggers.t1}%)</span>
+            <span>T1: {t('chart.correction')} ({triggers.t1}%)</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-0.5 bg-[#f97316]" />
-            <span>T2: Bear ({triggers.t2}%)</span>
+            <span>T2: {t('chart.bear')} ({triggers.t2}%)</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-0.5 bg-[#ef4444]" />
-            <span>T3: Crash ({triggers.t3}%)</span>
+            <span>T3: {t('chart.crash')} ({triggers.t3}%)</span>
           </div>
         </div>
       </CardContent>

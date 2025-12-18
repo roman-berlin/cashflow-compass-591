@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, ReferenceLine } from 'recharts';
 import { Loader2 } from 'lucide-react';
+import { useLanguage } from '@/hooks/useLanguage';
 
 interface TimeSeriesPoint {
   date: string;
@@ -17,12 +18,14 @@ interface PerformanceChartProps {
 }
 
 export function PerformanceChart({ spyData, ta35Data, loading, error }: PerformanceChartProps) {
+  const { t } = useLanguage();
+
   if (loading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Market Performance</CardTitle>
-          <CardDescription>Year-to-date returns</CardDescription>
+          <CardTitle>{t('chart.marketPerformance')}</CardTitle>
+          <CardDescription>{t('chart.ytdReturns')}</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[300px]">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -35,8 +38,8 @@ export function PerformanceChart({ spyData, ta35Data, loading, error }: Performa
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Market Performance</CardTitle>
-          <CardDescription>Year-to-date returns</CardDescription>
+          <CardTitle>{t('chart.marketPerformance')}</CardTitle>
+          <CardDescription>{t('chart.ytdReturns')}</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-center h-[300px]">
           <p className="text-muted-foreground">{error}</p>
@@ -70,8 +73,8 @@ export function PerformanceChart({ spyData, ta35Data, loading, error }: Performa
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Market Performance</CardTitle>
-            <CardDescription>Year-to-date returns (%)</CardDescription>
+            <CardTitle>{t('chart.marketPerformance')}</CardTitle>
+            <CardDescription>{t('chart.ytdReturns')}</CardDescription>
           </div>
           <div className="flex gap-4 text-sm">
             <div className="flex items-center gap-1.5">
@@ -167,7 +170,7 @@ export function PerformanceChart({ spyData, ta35Data, loading, error }: Performa
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <p className="text-center text-muted-foreground py-12">No performance data available</p>
+          <p className="text-center text-muted-foreground py-12">{t('chart.noPerformanceData')}</p>
         )}
       </CardContent>
     </Card>

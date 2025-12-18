@@ -129,11 +129,11 @@ export default function Dashboard() {
   const currency = settings?.currency || 'ILS';
   const currencySymbol = getCurrencySymbol(currency);
 
-  // 3-bucket pie chart with high-contrast colors
+  // 3-bucket pie chart with high-contrast colors and translated names
   const pieData = latestSnapshot ? [
-    { name: 'S&P', value: Number(latestSnapshot.value_sp), color: '#3b82f6' },
-    { name: 'TA-125', value: Number(latestSnapshot.value_ta), color: '#8b5cf6' },
-    { name: 'Cash', value: Number(latestSnapshot.cash_value), color: '#22c55e' },
+    { name: t('chart.snp'), value: Number(latestSnapshot.value_sp), color: '#3b82f6' },
+    { name: t('chart.ta125'), value: Number(latestSnapshot.value_ta), color: '#8b5cf6' },
+    { name: t('chart.cash'), value: Number(latestSnapshot.cash_value), color: '#22c55e' },
   ].filter(d => d.value > 0) : [];
 
   const ammoBadges = [
@@ -298,7 +298,7 @@ export default function Dashboard() {
                     dataKey="value"
                     label={({ cx, cy, midAngle, outerRadius, percent, name, fill }) => {
                       const RADIAN = Math.PI / 180;
-                      const radius = outerRadius + 25;
+                      const radius = outerRadius + 35;
                       const x = cx + radius * Math.cos(-midAngle * RADIAN);
                       const y = cy + radius * Math.sin(-midAngle * RADIAN);
                       return (
@@ -306,16 +306,16 @@ export default function Dashboard() {
                           x={x}
                           y={y}
                           fill={fill}
-                          textAnchor={x > cx ? 'start' : 'end'}
+                          textAnchor="middle"
                           dominantBaseline="central"
-                          fontSize={16}
+                          fontSize={14}
                           fontWeight={600}
                         >
                           {`${name} ${(percent * 100).toFixed(0)}%`}
                         </text>
                       );
                     }}
-                    labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
+                    labelLine={false}
                   >
                     {pieData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
