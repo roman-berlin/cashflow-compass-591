@@ -206,6 +206,26 @@ const translations: Record<Language, Record<string, string>> = {
     'strategy.fireAmmo1': 'Market correction detected ({drawdown}% drawdown). Deploy Tranche 1: 1/3 of current cash ({amount}) to equities.',
     'strategy.rebuildAmmo': 'Market recovered ({drawdown}% drawdown). Rebuild cash reserves to {target}%. Transfer {amount} from equities to cash.',
     'strategy.normal': 'Market normal ({drawdown}% drawdown). Split contribution: {cashContrib} to cash, {stocksContrib} to equities.',
+
+    // Charts
+    'chart.marketPerformance': 'Market Performance',
+    'chart.ytdReturns': 'Year-to-date returns (%)',
+    'chart.marketDrawdown': 'Market Drawdown',
+    'chart.distanceFrom52w': 'Distance from 52-week high',
+    'chart.ammoTriggerZones': 'Ammo trigger zones',
+    'chart.noPerformanceData': 'No performance data available',
+    'chart.noDrawdownData': 'No drawdown data available',
+    'chart.crashZone': 'Crash Zone',
+    'chart.bearZone': 'Bear Zone',
+    'chart.correctionZone': 'Correction Zone',
+    'chart.correction': 'Correction',
+    'chart.bear': 'Bear',
+    'chart.crash': 'Crash',
+
+    // Pie chart labels
+    'chart.snp': 'S&P',
+    'chart.ta125': 'TA-125',
+    'chart.cash': 'Cash',
   },
   he: {
     // Navigation
@@ -403,6 +423,26 @@ const translations: Record<Language, Record<string, string>> = {
     'strategy.fireAmmo1': 'זוהה תיקון שוק ({drawdown}% ירידה). פרוס שלב 1: 1/3 מהמזומן הנוכחי ({amount}) למניות.',
     'strategy.rebuildAmmo': 'השוק התאושש ({drawdown}% ירידה). בנה מחדש עתודות מזומן ל-{target}%. העבר {amount} ממניות למזומן.',
     'strategy.normal': 'שוק רגיל ({drawdown}% ירידה). חלק הפקדה: {cashContrib} למזומן, {stocksContrib} למניות.',
+
+    // Charts
+    'chart.marketPerformance': 'ביצועי שוק',
+    'chart.ytdReturns': 'תשואה מתחילת השנה (%)',
+    'chart.marketDrawdown': 'ירידת שוק',
+    'chart.distanceFrom52w': 'מרחק משיא 52 שבועות',
+    'chart.ammoTriggerZones': 'אזורי הפעלת תחמושת',
+    'chart.noPerformanceData': 'אין נתוני ביצועים זמינים',
+    'chart.noDrawdownData': 'אין נתוני ירידה זמינים',
+    'chart.crashZone': 'אזור קריסה',
+    'chart.bearZone': 'אזור דובי',
+    'chart.correctionZone': 'אזור תיקון',
+    'chart.correction': 'תיקון',
+    'chart.bear': 'דובי',
+    'chart.crash': 'קריסה',
+
+    // Pie chart labels
+    'chart.snp': 'S&P',
+    'chart.ta125': 'ת"א-125',
+    'chart.cash': 'מזומן',
   },
   ru: {
     // Navigation
@@ -600,6 +640,26 @@ const translations: Record<Language, Record<string, string>> = {
     'strategy.fireAmmo1': 'Обнаружена коррекция рынка ({drawdown}% просадка). Разверните Транш 1: 1/3 текущих наличных ({amount}) в акции.',
     'strategy.rebuildAmmo': 'Рынок восстановился ({drawdown}% просадка). Восстановите резервы наличных до {target}%. Переведите {amount} из акций в наличные.',
     'strategy.normal': 'Рынок в норме ({drawdown}% просадка). Разделите вклад: {cashContrib} в наличные, {stocksContrib} в акции.',
+
+    // Charts
+    'chart.marketPerformance': 'Показатели рынка',
+    'chart.ytdReturns': 'Доходность с начала года (%)',
+    'chart.marketDrawdown': 'Просадка рынка',
+    'chart.distanceFrom52w': 'Расстояние от 52-недельного максимума',
+    'chart.ammoTriggerZones': 'Зоны триггеров резервов',
+    'chart.noPerformanceData': 'Нет данных о показателях',
+    'chart.noDrawdownData': 'Нет данных о просадке',
+    'chart.crashZone': 'Зона обвала',
+    'chart.bearZone': 'Медвежья зона',
+    'chart.correctionZone': 'Зона коррекции',
+    'chart.correction': 'Коррекция',
+    'chart.bear': 'Медвежий',
+    'chart.crash': 'Обвал',
+
+    // Pie chart labels
+    'chart.snp': 'S&P',
+    'chart.ta125': 'TA-125',
+    'chart.cash': 'Наличные',
   },
 };
 
