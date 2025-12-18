@@ -32,6 +32,12 @@ export function LanguageToggle() {
         >
           🇮🇱 עברית
         </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={() => setLanguage('ru')}
+          className={language === 'ru' ? 'bg-accent' : ''}
+        >
+          🇷🇺 Русский
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

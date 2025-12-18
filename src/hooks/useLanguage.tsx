@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-type Language = 'en' | 'he';
+type Language = 'en' | 'he' | 'ru';
 
 interface LanguageContextType {
   language: Language;
@@ -36,6 +36,14 @@ const translations: Record<Language, Record<string, string>> = {
     'dashboard.portfolioPerformance': 'Portfolio Performance',
     'dashboard.drawdownHistory': 'Drawdown History',
     'dashboard.portfolioProfit': 'Portfolio Profit',
+    'dashboard.ammoStatus': 'Ammo Status',
+    'dashboard.tranche': 'Tranche',
+    'dashboard.used': 'Used',
+    'dashboard.available': 'Available',
+    'dashboard.snp': 'S&P 500',
+    'dashboard.ta125': 'TA-125',
+    'dashboard.cash': 'Cash',
+    'dashboard.total': 'Total',
 
     // Update page
     'update.title': 'Portfolio Update',
@@ -64,6 +72,8 @@ const translations: Record<Language, Record<string, string>> = {
     'update.updateSaved': 'Update saved with recommendation!',
     'update.contributionsSaved': 'Contributions saved',
     'update.marketUnavailable': 'Market data unavailable – recommendation not generated',
+    'update.spyProxy': 'SPY (S&P 500)',
+    'update.eisProxy': 'EIS (Israel ETF / TA-125 proxy)',
 
     // Settings page
     'settings.title': 'Settings',
@@ -86,6 +96,9 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.cashMax': 'Cash Max (%)',
     'settings.saveSettings': 'Save Settings',
     'settings.saved': 'Settings saved successfully',
+    'settings.snpPercent': 'SNP (%)',
+    'settings.ta125Percent': 'TA125 (%)',
+    'settings.cashPercent': 'Cash (%)',
 
     // Logs page
     'logs.title': 'Activity Logs',
@@ -96,6 +109,10 @@ const translations: Record<Language, Record<string, string>> = {
     'logs.noSnapshots': 'No portfolio snapshots yet',
     'logs.noRecommendations': 'No recommendations logged yet',
     'logs.noContributions': 'No contributions recorded yet',
+    'logs.date': 'Date',
+    'logs.type': 'Type',
+    'logs.amount': 'Amount',
+    'logs.status': 'Status',
 
     // Admin page
     'admin.title': 'Admin Panel',
@@ -107,6 +124,10 @@ const translations: Record<Language, Record<string, string>> = {
     'admin.actions': 'Actions',
     'admin.deleteUser': 'Delete User',
     'admin.resetPassword': 'Reset Password',
+    'admin.syncOwner': 'Sync Owner',
+    'admin.userInvited': 'User invited successfully',
+    'admin.userDeleted': 'User deleted successfully',
+    'admin.passwordReset': 'Password reset email sent',
 
     // Common
     'common.loading': 'Loading...',
@@ -119,6 +140,8 @@ const translations: Record<Language, Record<string, string>> = {
     'common.confirm': 'Confirm',
     'common.yes': 'Yes',
     'common.no': 'No',
+    'common.success': 'Success',
+    'common.refresh': 'Refresh',
 
     // Market status
     'market.normal': 'Normal',
@@ -130,6 +153,15 @@ const translations: Record<Language, Record<string, string>> = {
     'notifications.title': 'Notifications',
     'notifications.markAllRead': 'Mark all as read',
     'notifications.noNotifications': 'No notifications',
+
+    // Auth
+    'auth.signIn': 'Sign In',
+    'auth.signUp': 'Sign Up',
+    'auth.email': 'Email',
+    'auth.password': 'Password',
+    'auth.forgotPassword': 'Forgot Password?',
+    'auth.noAccount': "Don't have an account?",
+    'auth.hasAccount': 'Already have an account?',
   },
   he: {
     // Navigation
@@ -157,6 +189,14 @@ const translations: Record<Language, Record<string, string>> = {
     'dashboard.portfolioPerformance': 'ביצועי תיק',
     'dashboard.drawdownHistory': 'היסטוריית ירידות',
     'dashboard.portfolioProfit': 'רווח תיק',
+    'dashboard.ammoStatus': 'מצב תחמושת',
+    'dashboard.tranche': 'שלב',
+    'dashboard.used': 'נוצל',
+    'dashboard.available': 'זמין',
+    'dashboard.snp': 'S&P 500',
+    'dashboard.ta125': 'ת"א-125',
+    'dashboard.cash': 'מזומן',
+    'dashboard.total': 'סה"כ',
 
     // Update page
     'update.title': 'עדכון תיק',
@@ -185,6 +225,8 @@ const translations: Record<Language, Record<string, string>> = {
     'update.updateSaved': 'עדכון נשמר עם המלצה!',
     'update.contributionsSaved': 'הפקדות נשמרו',
     'update.marketUnavailable': 'נתוני שוק לא זמינים – המלצה לא נוצרה',
+    'update.spyProxy': 'SPY (S&P 500)',
+    'update.eisProxy': 'EIS (תעודת סל ישראל / מתאם ת"א-125)',
 
     // Settings page
     'settings.title': 'הגדרות',
@@ -207,6 +249,9 @@ const translations: Record<Language, Record<string, string>> = {
     'settings.cashMax': 'מזומן מקסימום (%)',
     'settings.saveSettings': 'שמור הגדרות',
     'settings.saved': 'ההגדרות נשמרו בהצלחה',
+    'settings.snpPercent': 'SNP (%)',
+    'settings.ta125Percent': 'ת"א-125 (%)',
+    'settings.cashPercent': 'מזומן (%)',
 
     // Logs page
     'logs.title': 'יומן פעילות',
@@ -217,6 +262,10 @@ const translations: Record<Language, Record<string, string>> = {
     'logs.noSnapshots': 'אין תמונות מצב עדיין',
     'logs.noRecommendations': 'אין המלצות מתועדות עדיין',
     'logs.noContributions': 'אין הפקדות מתועדות עדיין',
+    'logs.date': 'תאריך',
+    'logs.type': 'סוג',
+    'logs.amount': 'סכום',
+    'logs.status': 'סטטוס',
 
     // Admin page
     'admin.title': 'פאנל ניהול',
@@ -228,6 +277,10 @@ const translations: Record<Language, Record<string, string>> = {
     'admin.actions': 'פעולות',
     'admin.deleteUser': 'מחק משתמש',
     'admin.resetPassword': 'אפס סיסמה',
+    'admin.syncOwner': 'סנכרן בעלים',
+    'admin.userInvited': 'המשתמש הוזמן בהצלחה',
+    'admin.userDeleted': 'המשתמש נמחק בהצלחה',
+    'admin.passwordReset': 'אימייל איפוס סיסמה נשלח',
 
     // Common
     'common.loading': 'טוען...',
@@ -240,6 +293,8 @@ const translations: Record<Language, Record<string, string>> = {
     'common.confirm': 'אישור',
     'common.yes': 'כן',
     'common.no': 'לא',
+    'common.success': 'הצלחה',
+    'common.refresh': 'רענן',
 
     // Market status
     'market.normal': 'רגיל',
@@ -251,6 +306,168 @@ const translations: Record<Language, Record<string, string>> = {
     'notifications.title': 'התראות',
     'notifications.markAllRead': 'סמן הכל כנקרא',
     'notifications.noNotifications': 'אין התראות',
+
+    // Auth
+    'auth.signIn': 'התחבר',
+    'auth.signUp': 'הרשמה',
+    'auth.email': 'אימייל',
+    'auth.password': 'סיסמה',
+    'auth.forgotPassword': 'שכחת סיסמה?',
+    'auth.noAccount': 'אין לך חשבון?',
+    'auth.hasAccount': 'יש לך חשבון?',
+  },
+  ru: {
+    // Navigation
+    'nav.dashboard': 'Панель',
+    'nav.portfolioUpdate': 'Обновление портфеля',
+    'nav.settings': 'Настройки',
+    'nav.logs': 'История',
+    'nav.admin': 'Админ',
+    'nav.signOut': 'Выйти',
+    'nav.appName': 'Portfolio Ammo',
+
+    // Dashboard
+    'dashboard.title': 'Панель',
+    'dashboard.welcome': 'Добро пожаловать',
+    'dashboard.portfolioValue': 'Стоимость портфеля',
+    'dashboard.cashAllocation': 'Доля наличных',
+    'dashboard.stocksAllocation': 'Доля акций',
+    'dashboard.marketStatus': 'Состояние рынка',
+    'dashboard.lastUpdate': 'Последнее обновление',
+    'dashboard.noData': 'Пока нет данных портфеля',
+    'dashboard.addFirstUpdate': 'Добавьте первое обновление портфеля, чтобы начать',
+    'dashboard.goToUpdate': 'Перейти к обновлению',
+    'dashboard.recentRecommendations': 'Последние рекомендации',
+    'dashboard.noRecommendations': 'Пока нет рекомендаций',
+    'dashboard.portfolioPerformance': 'Эффективность портфеля',
+    'dashboard.drawdownHistory': 'История просадок',
+    'dashboard.portfolioProfit': 'Прибыль портфеля',
+    'dashboard.ammoStatus': 'Статус резервов',
+    'dashboard.tranche': 'Транш',
+    'dashboard.used': 'Использовано',
+    'dashboard.available': 'Доступно',
+    'dashboard.snp': 'S&P 500',
+    'dashboard.ta125': 'TA-125',
+    'dashboard.cash': 'Наличные',
+    'dashboard.total': 'Итого',
+
+    // Update page
+    'update.title': 'Обновление портфеля',
+    'update.subtitle': 'Запишите ваши вклады и получите рекомендацию',
+    'update.currentPortfolio': 'Текущая стоимость портфеля',
+    'update.updateHoldings': 'Обновите ваши текущие активы',
+    'update.editValues': 'Редактировать',
+    'update.cancel': 'Отмена',
+    'update.totalPortfolioValue': 'Общая стоимость портфеля',
+    'update.newContribution': 'Новый вклад',
+    'update.contributionDescription': 'Введите общую сумму вклада – она будет распределена согласно целевому распределению',
+    'update.totalContribution': 'Сумма вклада',
+    'update.currency': 'Валюта',
+    'update.targetAllocation': 'Целевое распределение',
+    'update.contributionBreakdown': 'Распределение вклада',
+    'update.marketData': 'Рыночные данные',
+    'update.loadingMarket': 'Загрузка рыночных данных...',
+    'update.price': 'Цена',
+    'update.high52w': 'Макс. 52 нед.',
+    'update.drawdown': 'Просадка',
+    'update.recommendation': 'Рекомендация',
+    'update.saveUpdate': 'Сохранить',
+    'update.saving': 'Сохранение...',
+    'update.settingsRequired': 'Требуются настройки',
+    'update.configureSettings': 'Пожалуйста, настройте параметры перед созданием обновления.',
+    'update.updateSaved': 'Обновление сохранено с рекомендацией!',
+    'update.contributionsSaved': 'Вклады сохранены',
+    'update.marketUnavailable': 'Рыночные данные недоступны – рекомендация не сгенерирована',
+    'update.spyProxy': 'SPY (S&P 500)',
+    'update.eisProxy': 'EIS (Израильский ETF / прокси TA-125)',
+
+    // Settings page
+    'settings.title': 'Настройки',
+    'settings.subtitle': 'Настройте стратегию вашего портфеля',
+    'settings.targetAllocation': 'Целевое распределение',
+    'settings.allocationDescription': 'Установите целевое распределение портфеля (сумма должна быть 100%)',
+    'settings.allocationSum': 'Сумма распределения',
+    'settings.allocationError': 'Распределение должно составлять 100%',
+    'settings.contributionSettings': 'Настройки вкладов',
+    'settings.monthlyContribution': 'Ежемесячный вклад',
+    'settings.baseCurrency': 'Базовая валюта',
+    'settings.ammoStrategy': 'Стратегия резервов',
+    'settings.strategyDescription': 'Настройте триггеры просадки для развертывания резервов',
+    'settings.tranche1': 'Триггер транша 1 (%)',
+    'settings.tranche2': 'Триггер транша 2 (%)',
+    'settings.tranche3': 'Триггер транша 3 (%)',
+    'settings.rebuildThreshold': 'Порог восстановления (%)',
+    'settings.cashLimits': 'Лимиты наличных',
+    'settings.cashMin': 'Мин. наличные (%)',
+    'settings.cashMax': 'Макс. наличные (%)',
+    'settings.saveSettings': 'Сохранить настройки',
+    'settings.saved': 'Настройки успешно сохранены',
+    'settings.snpPercent': 'SNP (%)',
+    'settings.ta125Percent': 'TA125 (%)',
+    'settings.cashPercent': 'Наличные (%)',
+
+    // Logs page
+    'logs.title': 'Журнал активности',
+    'logs.subtitle': 'Просмотр истории портфеля и рекомендаций',
+    'logs.portfolioSnapshots': 'Снимки портфеля',
+    'logs.recommendations': 'Рекомендации',
+    'logs.contributions': 'Вклады',
+    'logs.noSnapshots': 'Пока нет снимков портфеля',
+    'logs.noRecommendations': 'Пока нет записанных рекомендаций',
+    'logs.noContributions': 'Пока нет записанных вкладов',
+    'logs.date': 'Дата',
+    'logs.type': 'Тип',
+    'logs.amount': 'Сумма',
+    'logs.status': 'Статус',
+
+    // Admin page
+    'admin.title': 'Панель администратора',
+    'admin.subtitle': 'Управление пользователями и настройками системы',
+    'admin.users': 'Пользователи',
+    'admin.inviteUser': 'Пригласить',
+    'admin.email': 'Email',
+    'admin.role': 'Роль',
+    'admin.actions': 'Действия',
+    'admin.deleteUser': 'Удалить',
+    'admin.resetPassword': 'Сброс пароля',
+    'admin.syncOwner': 'Синхронизировать',
+    'admin.userInvited': 'Пользователь успешно приглашен',
+    'admin.userDeleted': 'Пользователь успешно удален',
+    'admin.passwordReset': 'Письмо для сброса пароля отправлено',
+
+    // Common
+    'common.loading': 'Загрузка...',
+    'common.error': 'Ошибка',
+    'common.save': 'Сохранить',
+    'common.cancel': 'Отмена',
+    'common.delete': 'Удалить',
+    'common.edit': 'Редактировать',
+    'common.close': 'Закрыть',
+    'common.confirm': 'Подтвердить',
+    'common.yes': 'Да',
+    'common.no': 'Нет',
+    'common.success': 'Успешно',
+    'common.refresh': 'Обновить',
+
+    // Market status
+    'market.normal': 'Нормальный',
+    'market.correction': 'Коррекция',
+    'market.bear': 'Медвежий рынок',
+    'market.crash': 'Обвал',
+
+    // Notifications
+    'notifications.title': 'Уведомления',
+    'notifications.markAllRead': 'Отметить все как прочитанные',
+    'notifications.noNotifications': 'Нет уведомлений',
+
+    // Auth
+    'auth.signIn': 'Войти',
+    'auth.signUp': 'Регистрация',
+    'auth.email': 'Email',
+    'auth.password': 'Пароль',
+    'auth.forgotPassword': 'Забыли пароль?',
+    'auth.noAccount': 'Нет аккаунта?',
+    'auth.hasAccount': 'Уже есть аккаунт?',
   },
 };
 

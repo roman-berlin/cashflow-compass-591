@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/hooks/useLanguage';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -15,19 +16,20 @@ import { runStrategy, calculateDrawdown, type StrategyResult, type MarketStatus 
 import { getCurrencySymbol } from '@/lib/currency';
 import type { Tables } from '@/integrations/supabase/types';
 
-const marketStatusConfig: Record<MarketStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof TrendingUp }> = {
-  normal: { label: 'Normal', variant: 'secondary', icon: TrendingUp },
-  correction: { label: 'Correction', variant: 'outline', icon: TrendingDown },
-  bear: { label: 'Bear Market', variant: 'destructive', icon: AlertTriangle },
-  crash: { label: 'Crash', variant: 'destructive', icon: AlertTriangle },
-};
-
 export default function Update() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [marketDataLoading, setMarketDataLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const marketStatusConfig: Record<MarketStatus, { labelKey: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof TrendingUp }> = {
+    normal: { labelKey: 'market.normal', variant: 'secondary', icon: TrendingUp },
+    correction: { labelKey: 'market.correction', variant: 'outline', icon: TrendingDown },
+    bear: { labelKey: 'market.bear', variant: 'destructive', icon: AlertTriangle },
+    crash: { labelKey: 'market.crash', variant: 'destructive', icon: AlertTriangle },
+  };
 
   // Total contribution input (user enters this)
   const [totalContribution, setTotalContribution] = useState(0);
@@ -269,11 +271,11 @@ export default function Update() {
           },
         });
 
-        toast({ title: 'Update saved with recommendation!' });
+        toast({ title: t('update.updateSaved') });
       } else {
         toast({ 
-          title: 'Contributions saved', 
-          description: marketData?.SPY ? undefined : 'Market data unavailable – recommendation not generated'
+          title: t('update.contributionsSaved'), 
+          description: marketData?.SPY ? undefined : t('update.marketUnavailable')
         });
       }
 
@@ -283,7 +285,7 @@ export default function Update() {
       setTotalContribution(0);
       loadData();
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Error', description: err.message });
+      toast({ variant: 'destructive', title: t('common.error'), description: err.message });
     } finally {
       setSaving(false);
     }
@@ -304,8 +306,8 @@ export default function Update() {
       <Layout>
         <Alert>
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Settings Required</AlertTitle>
-          <AlertDescription>Please configure your settings before creating an update.</AlertDescription>
+          <AlertTitle>{t('update.settingsRequired')}</AlertTitle>
+          <AlertDescription>{t('update.configureSettings')}</AlertDescription>
         </Alert>
       </Layout>
     );
@@ -318,8 +320,8 @@ export default function Update() {
     <Layout>
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Portfolio Update</h1>
-          <p className="text-muted-foreground">Record your contributions and get a recommendation</p>
+          <h1 className="text-2xl font-bold">{t('update.title')}</h1>
+          <p className="text-muted-foreground">{t('update.subtitle')}</p>
         </div>
 
         {/* Current Portfolio Values */}
@@ -327,15 +329,15 @@ export default function Update() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Current Portfolio Values</CardTitle>
-                <CardDescription>Update your current holdings</CardDescription>
+                <CardTitle>{t('update.currentPortfolio')}</CardTitle>
+                <CardDescription>{t('update.updateHoldings')}</CardDescription>
               </div>
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={() => setEditingValues(!editingValues)}
               >
-                {editingValues ? 'Cancel' : 'Edit Values'}
+                {editingValues ? t('update.cancel') : t('update.editValues')}
               </Button>
             </div>
           </CardHeader>
@@ -373,7 +375,7 @@ export default function Update() {
               </div>
             </div>
             <div className="text-right pt-2 border-t">
-              <p className="text-sm text-muted-foreground">Total Portfolio Value</p>
+              <p className="text-sm text-muted-foreground">{t('update.totalPortfolioValue')}</p>
               <p className="text-xl font-bold">{currencySymbol}{(valueSp + valueTa + valueCash).toLocaleString()}</p>
             </div>
           </CardContent>
@@ -382,13 +384,13 @@ export default function Update() {
         {/* New Contribution */}
         <Card>
           <CardHeader>
-            <CardTitle>New Contribution</CardTitle>
-            <CardDescription>Enter your total contribution – it will be split according to your target allocation</CardDescription>
+            <CardTitle>{t('update.newContribution')}</CardTitle>
+            <CardDescription>{t('update.contributionDescription')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
               <div className="flex-1 space-y-2">
-                <Label>Total Contribution ({currencySymbol})</Label>
+                <Label>{t('update.totalContribution')} ({currencySymbol})</Label>
                 <Input
                   type="number"
                   value={totalContribution || ''}
@@ -397,7 +399,7 @@ export default function Update() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Currency</Label>
+                <Label>{t('update.currency')}</Label>
                 <Select
                   value={contributionCurrency}
                   onValueChange={(v) => setContributionCurrency(v as 'USD' | 'NIS')}
@@ -415,7 +417,7 @@ export default function Update() {
             
             {/* Calculated per-asset breakdown (read-only) */}
             <div className="pt-4 border-t">
-              <p className="text-sm font-medium text-muted-foreground mb-3">Target Allocation</p>
+              <p className="text-sm font-medium text-muted-foreground mb-3">{t('update.targetAllocation')}</p>
               
               {/* Visual allocation bar */}
               <div className="mb-4">
@@ -453,7 +455,7 @@ export default function Update() {
               </div>
 
               {/* Amount breakdown */}
-              <p className="text-sm font-medium text-muted-foreground mb-3">Contribution Breakdown</p>
+              <p className="text-sm font-medium text-muted-foreground mb-3">{t('update.contributionBreakdown')}</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground whitespace-nowrap">SNP ({snpPercent}%)</Label>
@@ -474,7 +476,7 @@ export default function Update() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Cash ({cashPercent}%)</Label>
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">{t('dashboard.cash')} ({cashPercent}%)</Label>
                   <Input
                     type="text"
                     value={`${currencySymbol}${contributionCash.toLocaleString()}`}
@@ -491,29 +493,29 @@ export default function Update() {
         {marketDataLoading ? (
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-4">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Loading market data...</span>
+            <span>{t('update.loadingMarket')}</span>
           </div>
         ) : marketData?.SPY || marketData?.EIS ? (
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Market Data</CardTitle>
+              <CardTitle className="text-lg">{t('update.marketData')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* SPY Data */}
               {marketData.SPY && (
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">SPY (S&P 500)</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">{t('update.spyProxy')}</p>
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
-                      <p className="text-xs text-muted-foreground">Price</p>
+                      <p className="text-xs text-muted-foreground">{t('update.price')}</p>
                       <p className="text-lg font-semibold">${Number(marketData.SPY.last_price).toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">52W High</p>
+                      <p className="text-xs text-muted-foreground">{t('update.high52w')}</p>
                       <p className="text-lg font-semibold">${Number(marketData.SPY.high_52w).toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Drawdown</p>
+                      <p className="text-xs text-muted-foreground">{t('update.drawdown')}</p>
                       <p className="text-lg font-semibold text-destructive">
                         -{Number(marketData.SPY.current_drawdown).toFixed(1)}%
                       </p>
@@ -525,18 +527,18 @@ export default function Update() {
               {/* EIS/TA-125 Data */}
               {marketData.EIS && (
                 <div className="pt-3 border-t">
-                  <p className="text-sm font-medium text-muted-foreground mb-2">EIS (Israel ETF / TA-125 proxy)</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">{t('update.eisProxy')}</p>
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
-                      <p className="text-xs text-muted-foreground">Price</p>
+                      <p className="text-xs text-muted-foreground">{t('update.price')}</p>
                       <p className="text-lg font-semibold">${Number(marketData.EIS.last_price).toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">52W High</p>
+                      <p className="text-xs text-muted-foreground">{t('update.high52w')}</p>
                       <p className="text-lg font-semibold">${Number(marketData.EIS.high_52w).toFixed(2)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Drawdown</p>
+                      <p className="text-xs text-muted-foreground">{t('update.drawdown')}</p>
                       <p className="text-lg font-semibold text-destructive">
                         -{Number(marketData.EIS.current_drawdown).toFixed(1)}%
                       </p>
@@ -549,7 +551,7 @@ export default function Update() {
         ) : (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
             <Info className="h-4 w-4" />
-            <span>Market data unavailable</span>
+            <span>{t('update.marketUnavailable')}</span>
           </div>
         )}
 
@@ -557,8 +559,8 @@ export default function Update() {
           <Alert>
             <StatusConfig.icon className="h-4 w-4" />
             <AlertTitle className="flex items-center gap-2">
-              Recommendation
-              <Badge variant={StatusConfig.variant}>{StatusConfig.label}</Badge>
+              {t('update.recommendation')}
+              <Badge variant={StatusConfig.variant}>{t(StatusConfig.labelKey)}</Badge>
             </AlertTitle>
             <AlertDescription className="mt-2">
               <p className="font-medium">{recommendation.recommendation_type.replace(/_/g, ' ')}</p>
@@ -569,7 +571,7 @@ export default function Update() {
 
         <Button onClick={saveUpdate} disabled={saving} className="w-full" size="lg">
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
-          Save Update
+          {saving ? t('update.saving') : t('update.saveUpdate')}
         </Button>
       </div>
     </Layout>
