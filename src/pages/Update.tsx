@@ -29,10 +29,8 @@ export default function Update() {
   const [marketDataLoading, setMarketDataLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Contribution inputs (user can edit individually)
-  const [contributionSpy, setContributionSpy] = useState(0);
-  const [contributionTa, setContributionTa] = useState(0);
-  const [contributionCash, setContributionCash] = useState(0);
+  // Total contribution input (user enters this)
+  const [totalContribution, setTotalContribution] = useState(0);
   const [contributionCurrency, setContributionCurrency] = useState<'USD' | 'NIS'>('NIS');
 
   // Portfolio values from last snapshot (for strategy engine)
@@ -111,15 +109,10 @@ export default function Update() {
   const ta125Percent = (settings as any)?.ta125_target_percent ?? 25;
   const cashPercent = settings?.cash_target_percent ?? 25;
 
-  // Calculate total contribution from individual inputs
-  const totalContribution = contributionSpy + contributionTa + contributionCash;
-
-  // Function to auto-split a total amount by percentages
-  const handleTotalContributionChange = (total: number) => {
-    setContributionSpy(total * (snpPercent / 100));
-    setContributionTa(total * (ta125Percent / 100));
-    setContributionCash(total * (cashPercent / 100));
-  };
+  // Calculate per-asset contributions based on total and percentages (read-only)
+  const contributionSpy = totalContribution * (snpPercent / 100);
+  const contributionTa = totalContribution * (ta125Percent / 100);
+  const contributionCash = totalContribution * (cashPercent / 100);
 
   const runStrategyEngine = () => {
     if (!settings || !marketData?.SPY) return null;
@@ -286,10 +279,8 @@ export default function Update() {
 
       // Reset inputs
       setEditingValues(false);
-      // Reset contributions
-      setContributionSpy(0);
-      setContributionTa(0);
-      setContributionCash(0);
+      // Reset total contribution
+      setTotalContribution(0);
       loadData();
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Error', description: err.message });
@@ -401,7 +392,7 @@ export default function Update() {
                 <Input
                   type="number"
                   value={totalContribution || ''}
-                  onChange={(e) => handleTotalContributionChange(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setTotalContribution(parseFloat(e.target.value) || 0)}
                   placeholder="0"
                 />
               </div>
@@ -467,28 +458,28 @@ export default function Update() {
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground whitespace-nowrap">SNP ({snpPercent}%)</Label>
                   <Input
-                    type="number"
-                    value={contributionSpy || ''}
-                    onChange={(e) => setContributionSpy(parseFloat(e.target.value) || 0)}
-                    placeholder="0"
+                    type="text"
+                    value={`${currencySymbol}${contributionSpy.toLocaleString()}`}
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground whitespace-nowrap">TA125 ({ta125Percent}%)</Label>
                   <Input
-                    type="number"
-                    value={contributionTa || ''}
-                    onChange={(e) => setContributionTa(parseFloat(e.target.value) || 0)}
-                    placeholder="0"
+                    type="text"
+                    value={`${currencySymbol}${contributionTa.toLocaleString()}`}
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground whitespace-nowrap">Cash ({cashPercent}%)</Label>
                   <Input
-                    type="number"
-                    value={contributionCash || ''}
-                    onChange={(e) => setContributionCash(parseFloat(e.target.value) || 0)}
-                    placeholder="0"
+                    type="text"
+                    value={`${currencySymbol}${contributionCash.toLocaleString()}`}
+                    disabled
+                    className="bg-muted"
                   />
                 </div>
               </div>

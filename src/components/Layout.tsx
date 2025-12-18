@@ -1,8 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useLanguage } from '@/hooks/useLanguage';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { NotificationBell } from '@/components/NotificationBell';
 import { TrendingUp, Settings, PlusCircle, LayoutDashboard, History, LogOut, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -10,14 +12,15 @@ import { cn } from '@/lib/utils';
 export function Layout({ children }: { children: React.ReactNode }) {
   const { signOut } = useAuth();
   const { isAdmin } = useUserRole();
+  const { t } = useLanguage();
   const location = useLocation();
 
   const navItems = [
-    { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/update', label: 'Portfolio Update', icon: PlusCircle },
-    { href: '/settings', label: 'Settings', icon: Settings },
-    { href: '/logs', label: 'Logs', icon: History },
-    ...(isAdmin ? [{ href: '/admin', label: 'Admin', icon: Shield }] : []),
+    { href: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
+    { href: '/update', label: t('nav.portfolioUpdate'), icon: PlusCircle },
+    { href: '/settings', label: t('nav.settings'), icon: Settings },
+    { href: '/logs', label: t('nav.logs'), icon: History },
+    ...(isAdmin ? [{ href: '/admin', label: t('nav.admin'), icon: Shield }] : []),
   ];
 
   return (
@@ -26,7 +29,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <TrendingUp className="h-6 w-6 text-primary" />
-            <span className="font-bold text-lg">Portfolio Ammo</span>
+            <span className="font-bold text-lg">{t('nav.appName')}</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => (
@@ -47,10 +50,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="flex items-center gap-1">
             <NotificationBell />
+            <LanguageToggle />
             <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={signOut} className="gap-2">
               <LogOut className="h-4 w-4" />
-              <span className="hidden md:inline">Sign Out</span>
+              <span className="hidden md:inline">{t('nav.signOut')}</span>
             </Button>
           </div>
         </div>
