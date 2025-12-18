@@ -31,9 +31,10 @@ export default function Settings() {
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [profileName, setProfileName] = useState('');
-  const [settings, setSettings] = useState<Partial<Tables<'settings'>>>({
-    stocks_target_percent: 70,
-    cash_target_percent: 30,
+  const [settings, setSettings] = useState<Partial<Tables<'settings'> & { snp_target_percent?: number; ta125_target_percent?: number }>>({
+    snp_target_percent: 50,
+    ta125_target_percent: 25,
+    cash_target_percent: 25,
     tranche_1_trigger: 10,
     tranche_2_trigger: 20,
     tranche_3_trigger: 30,
@@ -41,6 +42,10 @@ export default function Settings() {
     cash_min_pct: 20,
     cash_max_pct: 35,
   });
+  
+  // Calculate sum of target allocations
+  const allocationSum = (settings.snp_target_percent || 0) + (settings.ta125_target_percent || 0) + (settings.cash_target_percent || 0);
+  const allocationError = allocationSum !== 100;
 
   useEffect(() => {
     if (user) {
@@ -66,11 +71,19 @@ export default function Settings() {
   };
 
   const handleSave = async () => {
+    // Validate allocation sum
+    if (allocationError) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Target allocations must sum to 100%' });
+      return;
+    }
+    
     setSaving(true);
     const { error } = await supabase
       .from('settings')
       .upsert({
         ...settings,
+        // Also update stocks_target_percent for backwards compatibility
+        stocks_target_percent: (settings.snp_target_percent || 0) + (settings.ta125_target_percent || 0),
         user_id: user!.id,
       }, { onConflict: 'user_id' });
 
@@ -231,24 +244,37 @@ export default function Settings() {
         <Card>
           <CardHeader>
             <CardTitle>Target Allocation</CardTitle>
-            <CardDescription>Your ideal portfolio balance</CardDescription>
+            <CardDescription>Your ideal portfolio balance (must equal 100%)</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Stocks Target (%)</Label>
-              <Input
-                type="number"
-                value={settings.stocks_target_percent}
-                onChange={(e) => updateField('stocks_target_percent', parseFloat(e.target.value) || 0)}
-              />
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>SNP (%)</Label>
+                <Input
+                  type="number"
+                  value={settings.snp_target_percent}
+                  onChange={(e) => updateField('snp_target_percent', parseFloat(e.target.value) || 0)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>TA125 (%)</Label>
+                <Input
+                  type="number"
+                  value={settings.ta125_target_percent}
+                  onChange={(e) => updateField('ta125_target_percent', parseFloat(e.target.value) || 0)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Cash (%)</Label>
+                <Input
+                  type="number"
+                  value={settings.cash_target_percent}
+                  onChange={(e) => updateField('cash_target_percent', parseFloat(e.target.value) || 0)}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Cash Target (%)</Label>
-              <Input
-                type="number"
-                value={settings.cash_target_percent}
-                onChange={(e) => updateField('cash_target_percent', parseFloat(e.target.value) || 0)}
-              />
+            <div className={`text-sm font-medium ${allocationError ? 'text-destructive' : 'text-muted-foreground'}`}>
+              Total: {allocationSum}%{allocationError && ' — Must equal 100%'}
             </div>
           </CardContent>
         </Card>

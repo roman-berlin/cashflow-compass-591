@@ -319,8 +319,10 @@ export type Database = {
           id: string
           monthly_contribution_total: number
           rebuild_threshold: number
+          snp_target_percent: number | null
           stocks_target_percent: number
           stop_cash_threshold: number
+          ta125_target_percent: number | null
           tranche_1_trigger: number
           tranche_2_trigger: number
           tranche_3_trigger: number
@@ -339,8 +341,10 @@ export type Database = {
           id?: string
           monthly_contribution_total?: number
           rebuild_threshold?: number
+          snp_target_percent?: number | null
           stocks_target_percent?: number
           stop_cash_threshold?: number
+          ta125_target_percent?: number | null
           tranche_1_trigger?: number
           tranche_2_trigger?: number
           tranche_3_trigger?: number
@@ -359,8 +363,10 @@ export type Database = {
           id?: string
           monthly_contribution_total?: number
           rebuild_threshold?: number
+          snp_target_percent?: number | null
           stocks_target_percent?: number
           stop_cash_threshold?: number
+          ta125_target_percent?: number | null
           tranche_1_trigger?: number
           tranche_2_trigger?: number
           tranche_3_trigger?: number
